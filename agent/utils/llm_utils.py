@@ -54,8 +54,19 @@ class LLMUtils:
         Generate a response using OpenAI API asynchronously.
         """
         try:
+            # Add scenario context reminder to system prompt
+            scenario_context = """
+            대화 시 주의사항:
+            1. 현재 시나리오의 맥락과 목표를 항상 고려하며 대화하세요
+            2. 시나리오 진행에 도움이 되는 방향으로 대화를 이끌어가세요
+            3. 페르소나의 특성과 전문성을 자연스럽게 보여주세요
+            4. 불필요하게 주제에서 벗어나지 않도록 주의하세요
+            """
+            
+            enhanced_prompt = system_prompt + "\n" + scenario_context + "\n\nPlease respond in Korean, using appropriate honorifics and natural Korean expressions."
+            
             messages = [
-                {"role": "system", "content": system_prompt + "\n\nPlease respond in Korean, using appropriate honorifics and natural Korean expressions."},
+                {"role": "system", "content": enhanced_prompt},
                 {"role": "user", "content": user_prompt}
             ]
 
