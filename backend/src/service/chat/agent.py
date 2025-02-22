@@ -27,6 +27,7 @@ class AgentService:
         self.workflow = None
         self.state = None
         self.interaction_count = 0
+        self.llm = None  # Store LLM instance
         self.initialize()
 
     def initialize(self):
@@ -39,7 +40,7 @@ class AgentService:
             self.config_manager.ensure_data_directories()
 
             # Initialize LLM
-            llm = LLMUtils(api_key=settings.OPENAI_API_KEY)
+            self.llm = LLMUtils(api_key=settings.OPENAI_API_KEY)
 
             # Load persona and scenarios
             persona_data = self.config_manager.load_persona("persona0")  # Using the ENFJ persona
@@ -47,7 +48,7 @@ class AgentService:
 
             # Get initial scenario
             initial_scenario = ScenarioModel(**all_scenarios["warmup_pack"])
-            initial_scenario.llm = llm
+            initial_scenario.llm = self.llm
 
             # Create initial state
             persona = PersonaModel(**persona_data)
@@ -56,6 +57,9 @@ class AgentService:
                 available_scenarios=[s_id for s_id in all_scenarios.keys()],
             )
             context = ContextModel()
+
+            # Set initial scenario goals
+            state.set_scenario_goals(initial_scenario.goals)
 
             # Initialize workflow state
             self.state = {
@@ -68,7 +72,7 @@ class AgentService:
             }
 
             # Create workflow
-            self.workflow = create_agent_workflow(llm, self.state)
+            self.workflow = create_agent_workflow(self.llm, self.state)
 
         except Exception as e:
             logger.error(f"Error during initialization: {str(e)}")
@@ -84,16 +88,42 @@ class AgentService:
 
     def _create_scenario_info(self, scenario: Any) -> ScenarioInfo:
         """Create ScenarioInfo from current scenario."""
-        progress = 0.0
-        try:
-            if hasattr(self.state["context"], "short_term"):
-                if hasattr(self.state["context"].short_term, "progress"):
-                    progress = max(0.0, float(self.state["context"].short_term.progress))
-        except Exception:
-            pass
+        # Get progress from state
+        progress = self.state["state"].get_progress()
+        
+        # Get completed and remaining goals
+        completed_goals = self.state["state"].completed_goals
+        remaining_goals = self.state["state"].get_remaining_goals()
+        
+        # Get newly achieved goals from metadata if available
+        new_achievements = []
+        if hasattr(self.state, "response") and self.state["response"]:
+            metadata = self.state["response"].get("metadata", {})
+            new_achievements = metadata.get("new_achievements", [])
+        
+        # Create detailed scenario description
+        detailed_description = f"{scenario.description}\n\n"
+        detailed_description += "📋 시나리오 목표:\n"
+        
+        # Add all goals with their status
+        for goal in self.state["state"].total_goals:
+            if goal in completed_goals:
+                if goal in new_achievements:
+                    detailed_description += f"✨ {goal} (방금 달성!)\n"
+                else:
+                    detailed_description += f"✅ {goal}\n"
+            else:
+                detailed_description += f"⬜ {goal}\n"
+        
+        # Add progress percentage
+        progress_percentage = int(progress * 100)
+        detailed_description += f"\n진행도: {progress_percentage}% 완료"
 
         return ScenarioInfo(
-            title=scenario.title, description=scenario.description, goals=scenario.goals, current_progress=progress
+            title=scenario.title,
+            description=detailed_description,
+            goals=scenario.goals,
+            current_progress=progress
         )
 
     def _threshold_affinity(self, value: float) -> float:
@@ -110,14 +140,66 @@ class AgentService:
         """Apply threshold to emotion values"""
         return {k: EmotionState.threshold_emotion(v) for k, v in emotions.items()}
 
+    async def load_next_scenario(self) -> None:
+        """Load the next available scenario."""
+        try:
+            # Get available scenarios
+            available_scenarios = self.config_manager.load_all_scenarios()
+            current_scenario_id = self.state["state"].current_scenario_id
+            
+            # Get list of scenario IDs
+            scenario_ids = list(available_scenarios.keys())
+            
+            # Find current scenario index
+            try:
+                current_index = scenario_ids.index(current_scenario_id)
+                next_index = (current_index + 1) % len(scenario_ids)
+                next_scenario_id = scenario_ids[next_index]
+            except ValueError:
+                # If current scenario not found, start from beginning
+                next_scenario_id = scenario_ids[0]
+            
+            # Load next scenario
+            next_scenario = ScenarioModel(**available_scenarios[next_scenario_id])
+            next_scenario.llm = self.llm  # Use stored LLM instance
+            
+            # Update state
+            self.state["scenario"] = next_scenario
+            self.state["state"].current_scenario_id = next_scenario_id
+            self.state["state"].set_scenario_goals(next_scenario.goals)
+            
+            # Clear context for new scenario
+            self.state["context"] = ContextModel()
+            
+            logger.info(f"Loaded next scenario: {next_scenario_id}")
+            
+        except Exception as e:
+            logger.error(f"Error loading next scenario: {str(e)}")
+            raise
+
     async def get_agent_response(self, message: RoomMessage) -> RoomMessage:
         """Generate agent response with all necessary information."""
         try:
             # Increment interaction counter
             self.interaction_count += 1
+            
+            # Increment conversation counter
+            self.state["state"].increment_conversation_count()
 
             # Get response from workflow
             response = await run_agent(self.workflow, message.content, self.state)
+
+            # Check if scenario should end
+            if self.state["state"].should_end_scenario():
+                # Load next scenario
+                await self.load_next_scenario()
+                # Reset conversation counter
+                self.state["state"].reset_conversation_count()
+                # Set metadata to indicate scenario change
+                if "metadata" not in response:
+                    response["metadata"] = {}
+                response["metadata"]["scenario_changed"] = True
+                response["metadata"]["previous_scenario"] = self.state["state"].current_scenario_id
 
             # Get current emotion state and affinity
             emotion_state = self._threshold_emotions(self.state["state"].current_emotions)
@@ -131,20 +213,32 @@ class AgentService:
             # Convert text to audio
             audio_bytes = await self.convert_text_to_audio(response["response"])
             audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+
+            # Add goal progress to response content
+            response_with_progress = response["response"]
+            if "metadata" in response and "goals_achieved" in response["metadata"]:
+                # If any new goals were achieved in this interaction
+                new_goals = response["metadata"]["goals_achieved"]
+                if new_goals:
+                    response_with_progress += "\n\n🎉 새로 달성한 목표:\n"
+                    for goal in new_goals:
+                        response_with_progress += f"  - {goal}\n"
+
             # Create response message
             return RoomMessage(
                 type=MessageType.text,
-                content=response["response"],
+                content=response_with_progress,
                 sender="agent",
                 emotion=Emotion(
                     emotion=self._get_dominant_emotion(emotion_state),
-                    likeability=affinity / 100,  # Convert to 0-1 scale
+                    likeability=affinity,
                     emotion_state=self._create_emotion_state(emotion_state),
                 ),
                 audio_data=audio_base64,
                 scenario_info=self._create_scenario_info(self.state["scenario"]),
                 tips=tips,
                 requires_user_action=response.get("metadata", {}).get("scenario_changed", False),
+                metadata=response.get("metadata", {})
             )
 
         except Exception as e:

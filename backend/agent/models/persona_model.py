@@ -29,5 +29,31 @@ class PersonaModel(BaseModel):
 
     def is_action_aligned(self, action: str) -> bool:
         """Check if an action aligns with character's values and personality."""
-        # Implementation will depend on specific personality rules
-        return True  # Placeholder 
+        # Convert action to lowercase for case-insensitive comparison
+        action = action.lower()
+        
+        # Check against values
+        for value_name, value_details in self.values.items():
+            if isinstance(value_details, dict):
+                # If value has detailed structure
+                if 'prohibited_actions' in value_details:
+                    if any(prohibited.lower() in action for prohibited in value_details['prohibited_actions']):
+                        return False
+                if 'aligned_actions' in value_details:
+                    if any(aligned.lower() in action for aligned in value_details['aligned_actions']):
+                        return True
+            elif isinstance(value_details, (str, list)):
+                # If value is a simple string or list
+                values_list = [value_details] if isinstance(value_details, str) else value_details
+                if any(value.lower() in action for value in values_list):
+                    return True
+        
+        # Check against personality traits
+        for trait, level in self.core_traits.items():
+            if isinstance(level, (int, float)):
+                # For numeric trait levels (e.g., openness: 0.8)
+                if trait.lower() in action:
+                    return level > 0.5  # Consider trait aligned if above middle value
+        
+        # Default to neutral (True) if no specific conflicts found
+        return True 

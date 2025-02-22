@@ -32,7 +32,20 @@ async def chat_with_agent():
         # Print scenario info if available
         if response.scenario_info:
             print(f"\nCurrent Scenario: {response.scenario_info.title}")
-            print(f"Progress: {response.scenario_info.current_progress:.0%}")
+            print(f"{response.scenario_info.description}")
+            
+            # Print goals with their status
+            print("\n📋 시나리오 목표:")
+            for goal in response.scenario_info.goals:
+                # Check if goal is in metadata's completed goals
+                if (response.metadata and 
+                    "goals_achieved" in response.metadata and 
+                    goal in response.metadata["goals_achieved"]):
+                    print(f"✅ {goal}")
+                else:
+                    print(f"⬜ {goal}")
+            
+            print(f"\n진행도: {response.scenario_info.current_progress:.0%}")
 
         # Print tips if available
         if response.tips:

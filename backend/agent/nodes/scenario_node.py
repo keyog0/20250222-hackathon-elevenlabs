@@ -22,6 +22,38 @@ def create_scenario_node(llm: LLMUtils):
             # Log completion analysis
             logger.info(f"[Scenario] Completion Analysis: {completion_analysis}")
 
+            # Update goals based on completion analysis
+            for achieved_goal in completion_analysis.get("goals_achieved", []):
+                state["state"].update_progress(achieved_goal)
+            
+            # Update response metadata with goal progress
+            if state["response"] and "metadata" in state["response"]:
+                state["response"]["metadata"].update({
+                    "goals_achieved": state["state"].completed_goals,
+                    "remaining_goals": state["state"].get_remaining_goals(),
+                    "current_progress": state["state"].get_progress(),
+                    "total_goals": state["state"].total_goals,
+                    "new_achievements": completion_analysis.get("goals_achieved", [])
+                })
+
+                # Add goal progress message to response
+                goal_progress = "\n\n📊 목표 진행 상황:\n"
+                if state["state"].completed_goals:
+                    goal_progress += "\n✅ 달성한 목표:\n"
+                    for goal in state["state"].completed_goals:
+                        goal_progress += f"  - {goal}\n"
+                
+                goal_progress += "\n🎯 남은 목표:\n"
+                for goal in state["state"].get_remaining_goals():
+                    goal_progress += f"  - {goal}\n"
+
+                if completion_analysis.get("goals_achieved"):
+                    goal_progress += "\n🎉 이번 대화에서 달성한 목표:\n"
+                    for goal in completion_analysis["goals_achieved"]:
+                        goal_progress += f"  - {goal}\n"
+
+                state["response"]["response_text"] += goal_progress
+            
             # Check for failure conditions
             if (
                 not completion_analysis["requirements_status"]["affinity"]["met"]
@@ -88,6 +120,9 @@ def create_scenario_node(llm: LLMUtils):
                     # Initialize new scenario
                     state["scenario"] = next_scenario
                     state["state"].current_scenario_id = next_scenario.scenario_id
+                    
+                    # Set new scenario goals
+                    state["state"].set_scenario_goals(next_scenario.goals)
 
                     # Update metadata to indicate scenario change
                     if state["response"] and "metadata" in state["response"]:
@@ -104,35 +139,6 @@ def create_scenario_node(llm: LLMUtils):
                     log_scenario_update(old_scenario_id, next_scenario.scenario_id)
                     logger.info(f"[Scenario] New Goals: {next_scenario.goals}")
 
-                # Get available scenarios
-                available_scenarios = current_scenario.update_available_scenarios({"state": state["state"]})
-
-                if available_scenarios:
-                    # Get next scenario
-                    next_scenario = await _select_next_scenario(state, llm, available_scenarios)
-
-                    if next_scenario:
-                        old_scenario_id = current_scenario.scenario_id
-
-                        # Initialize new scenario
-                        state["scenario"] = next_scenario
-                        state["state"].current_scenario_id = next_scenario.scenario_id
-
-                        # Update metadata to indicate scenario change
-                        if state["response"] and "metadata" in state["response"]:
-                            state["response"]["metadata"].update(
-                                {
-                                    "scenario_changed": True,
-                                    "previous_scenario": old_scenario_id,
-                                    "completion_reason": completion_analysis["reason"],
-                                    "goals_achieved": completion_analysis["goals_achieved"],
-                                }
-                            )
-
-                        # Log scenario transition
-                        log_scenario_update(old_scenario_id, next_scenario.scenario_id)
-                        logger.info(f"[Scenario] New Goals: {next_scenario.goals}")
-
             return state
 
         except Exception as e:
@@ -145,29 +151,31 @@ def create_scenario_node(llm: LLMUtils):
     ) -> Dict[str, Any]:
         """Analyze if the current scenario should end."""
         system_prompt = """
-        현재 시나리오의 완료 여부를 분석하세요. 다음 조건들을 확인하고 상세한 피드백을 제공하세요.
-        마크다운 코드 블록(```) 없이 순수 JSON 형식으로만 응답해주세요.
+        현재 시나리오의 목표 달성도와 완료 여부를 분석하세요.
+        각 목표에 대해 대화 내용을 기반으로 달성 여부를 판단하고, 상세한 피드백을 제공하세요.
 
-        1. 필수 조건:
-           - 현재 친밀도(affinity)가 목표치에 도달했는지
-           - 필요한 감정 상태(emotions)가 충족되었는지
-           - 이전 시나리오가 완료되었는지
+        시나리오 목표 달성 기준:
+        1. 각 목표별 구체적인 달성 조건:
+           - 대화 내용에서 해당 목표와 관련된 명확한 증거가 있어야 함
+           - 사용자의 반응이 긍정적이고 참여도가 높아야 함
+           - 목표가 자연스럽게 달성되었다고 판단되어야 함
 
-        2. 시나리오 목표:
-           - 각 목표의 달성 여부
-           - 남은 목표와 달성하기 위해 필요한 것
+        2. 감정과 친밀도 요구사항:
+           - 현재 감정 상태가 목표 달성에 적합한지
+           - 친밀도가 충분한 수준인지
+           - 대화의 전반적인 톤이 긍정적인지
 
-        3. 대화 품질:
-           - 대화의 깊이와 의미
-           - 상호 이해도
-           - 향후 발전 가능성
+        3. 대화 품질 평가:
+           - 대화가 자연스럽게 흐르는지
+           - 상호작용이 효과적인지
+           - 목표 달성을 위한 진전이 있는지
 
         다음 형식으로 응답하세요 (마크다운 없이 순수 JSON):
         {
             "should_end": boolean,
             "reason": string,
-            "goals_achieved": string[],
-            "remaining_goals": string[],
+            "goals_achieved": string[],  // 이번 분석에서 새로 달성된 목표들
+            "remaining_goals": string[],  // 아직 달성되지 않은 목표들
             "requirements_status": {
                 "affinity": {
                     "current": float,
@@ -181,16 +189,21 @@ def create_scenario_node(llm: LLMUtils):
                 }
             },
             "conversation_quality": {
-                "depth": float,
-                "engagement": float,
-                "potential": float
+                "depth": float,        // 0-1 사이 값
+                "engagement": float,    // 0-1 사이 값
+                "potential": float      // 0-1 사이 값
             },
             "feedback": {
-                "success_points": string[],
-                "improvement_needed": string[],
-                "next_steps": string[]
+                "success_points": string[],  // 잘 된 점들
+                "improvement_needed": string[],  // 개선이 필요한 점들
+                "next_steps": string[]  // 다음 단계 제안
             }
         }
+
+        각 목표의 달성 여부를 판단할 때는 다음을 고려하세요:
+        1. 명시적 증거: 대화에서 직접적으로 확인할 수 있는 증거
+        2. 암묵적 증거: 대화의 톤, 맥락, 사용자의 반응에서 유추할 수 있는 증거
+        3. 진행 상태: 부분적으로 달성된 목표의 경우, 완전한 달성까지 필요한 요소
         """
 
         analysis_context = {
@@ -199,6 +212,8 @@ def create_scenario_node(llm: LLMUtils):
             "emotions": state.current_emotions,
             "affinity": state.affinity_score,
             "requirements": scenario.requirements,
+            "completed_goals": state.completed_goals,  # Add completed goals for context
+            "progress_percentage": state.get_progress()  # Add current progress
         }
 
         try:
@@ -245,41 +260,52 @@ def create_scenario_node(llm: LLMUtils):
             }
 
     async def _select_next_scenario(
-        state: AgentState, llm: LLMUtils, available_scenarios: Dict[str, Any]
-    ) -> ScenarioModel:
+        current_scenario: ScenarioModel,
+        state: Any,
+        context: Any,
+        completion_analysis: Dict[str, Any]
+    ) -> Optional[ScenarioModel]:
         """Select next scenario based on current state."""
         try:
-            # Get current scenario for reference
-            current_scenario = state["scenario"]
-
+            # Get available scenarios
+            available_scenarios = current_scenario.update_available_scenarios({"state": state})
+            
+            if not available_scenarios:
+                return None
+            
             # Get next scenario response from LLM
-            next_scenario_response = await llm.select_next_scenario(
+            next_scenario_response = await current_scenario.llm.select_next_scenario(
                 available_scenarios=list(available_scenarios.values()),
-                current_state=state["state"].dict(),
-                conversation_history=[
-                    {"speaker": "user" if msg.get("is_user") else "agent", "message": msg.get("content", "")}
-                    for msg in state["context"].short_term.conversation_history
-                ],
+                current_state=state.dict(),
+                conversation_history=[{
+                    "speaker": "user" if msg.get("is_user") else "agent",
+                    "message": msg.get("content", "")
+                } for msg in context.short_term.conversation_history]
             )
-
+            
             # Parse the response to get scenario_id
             try:
                 import json
-
                 response_data = json.loads(next_scenario_response)
                 next_scenario_id = response_data.get("scenario_id")
-
+                
                 if next_scenario_id and next_scenario_id in available_scenarios:
                     # Create new scenario model
-                    return ScenarioModel(**available_scenarios[next_scenario_id], llm=llm)
+                    return ScenarioModel(
+                        **available_scenarios[next_scenario_id],
+                        llm=current_scenario.llm
+                    )
             except Exception as e:
                 logger.error(f"Error parsing next scenario response: {str(e)}")
-
+            
             # Fallback to first available scenario if selection fails
             logger.warning("[ScenarioNode] Failed to select next scenario, using fallback")
             fallback_id = list(available_scenarios.keys())[0]
-            return ScenarioModel(**available_scenarios[fallback_id], llm=llm)
-
+            return ScenarioModel(
+                **available_scenarios[fallback_id],
+                llm=current_scenario.llm
+            )
+            
         except Exception as e:
             logger.error(f"[ScenarioNode] Error selecting next scenario: {str(e)}")
             raise

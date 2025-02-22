@@ -211,6 +211,130 @@ Interaction -> Short-term Memory -> Context Analysis -> Long-term Memory -> Memo
 - **장기 메모리 저장**: 핵심 정보 영구 저장
 - **메모리 통합**: 전체 메모리 구조 최적화
 
+### 2.4 대화 기록 활용 시스템
+
+#### 2.4.1 대화 기록 구조
+- **기록 단위**: `Interaction` 객체
+  ```python
+  class Interaction:
+      content: str           # 대화 내용
+      speaker: str          # 발화자 (user/agent)
+      timestamp: datetime   # 발화 시간
+      metadata: Dict        # 부가 정보
+      emotion_state: Dict   # 감정 상태
+      scenario_context: Dict # 시나리오 맥락
+  ```
+
+#### 2.4.2 대화 기록 활용 지점
+1. **응답 생성 시**
+   - 이전 대화 맥락 참조
+   - 일관성 있는 응답 생성
+   - 페르소나 특성 유지
+   - 감정 상태 반영
+
+2. **감정 상태 분석 시**
+   - 대화 흐름 기반 감정 변화 추적
+   - 누적된 감정 상태 고려
+   - 상호작용 패턴 분석
+
+3. **시나리오 진행 판단 시**
+   - 목표 달성도 평가
+   - 사용자 참여도 측정
+   - 전환 시점 결정
+
+4. **맥락 관리 시**
+   - 중요 정보 추출
+   - 관련 정보 연결
+   - 장기 기억 저장 결정
+
+#### 2.4.3 대화 기록 처리 프로세스
+```python
+async def process_conversation_history(
+    current_input: str,
+    history: List[Interaction],
+    context: ContextModel
+) -> Dict[str, Any]:
+    """
+    대화 기록을 처리하여 응답 생성에 필요한 컨텍스트 구성
+    
+    Args:
+        current_input: 현재 사용자 입력
+        history: 이전 대화 기록
+        context: 현재 컨텍스트
+        
+    Returns:
+        Dict: 응답 생성을 위한 강화된 컨텍스트
+    """
+    # 최근 대화 추출 (기본 3개)
+    recent_interactions = history[-3:]
+    
+    # 관련 이전 대화 검색
+    relevant_history = await search_relevant_interactions(
+        current_input, 
+        history
+    )
+    
+    # 중요 정보 추출
+    key_points = extract_key_information(
+        recent_interactions + relevant_history
+    )
+    
+    # 감정 흐름 분석
+    emotion_flow = analyze_emotion_pattern(history)
+    
+    # 컨텍스트 강화
+    enhanced_context = {
+        "recent_interactions": recent_interactions,
+        "relevant_history": relevant_history,
+        "key_points": key_points,
+        "emotion_flow": emotion_flow,
+        "current_context": context
+    }
+    
+    return enhanced_context
+```
+
+#### 2.4.4 대화 기록 기반 응답 생성
+```python
+async def generate_response_with_history(
+    input_context: Dict[str, Any],
+    persona: PersonaModel,
+    state: StateModel
+) -> str:
+    """
+    대화 기록을 고려한 응답 생성
+    
+    Args:
+        input_context: 강화된 입력 컨텍스트
+        persona: 페르소나 모델
+        state: 현재 상태
+        
+    Returns:
+        str: 생성된 응답
+    """
+    # 프롬프트 구성
+    system_prompt = construct_prompt(
+        persona=persona,
+        emotion_state=state.current_emotions,
+        scenario=state.current_scenario
+    )
+    
+    # 대화 기록 포맷팅
+    formatted_history = format_conversation_history(
+        input_context["recent_interactions"],
+        input_context["relevant_history"]
+    )
+    
+    # 응답 생성
+    response = await llm.generate_response(
+        system_prompt=system_prompt,
+        conversation_history=formatted_history,
+        current_input=input_context["current_input"]
+    )
+    
+    return response
+```
+
 ## 3. 주요 기능 상세
 
 ### 3.1 감정 시스템
