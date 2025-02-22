@@ -1,13 +1,23 @@
-# fasapi-template
 
-fastapi service layer
 
-원칙
 
-- router는 비즈니스 로직을 포함하지 않는다.
-- router는 단순히 요청을 받아 서비스 계층으로 전달하는 역할만 한다.
-- 서비스 계층은 비즈니스 로직을 포함한다.
-- 서비스 계층은 예외를 발생시킨다.
-- router는 서비스 계층에서 발생한 예외를 처리한다.
-- 모델은 데이터베이스 테이블을 정의한다.
-- 반드시 모델은 XxxModel 처럼 Model 로 끝나야 한다.
+https://github.com/user-attachments/assets/0983136e-1354-4f40-9891-ca13403c8f75
+
+
+**Objective Developing** an agent that performs real-time emotional interactions based on standardized variables called “situations,” ensuring authentic engagement with users.
+
+Hackathon Product A role-playing simulation for relationship-building that requires no specialized domain knowledge.
+
+**Why Role-Playing?** We aimed to focus on the Power of Voice. The voice is a “window to emotions.” The dynamic nature of voices, which change depending on emotional interactions, enhances immersion for role-playing participants, allowing them to deeply engage in the experience.
+
+**Where is the Business Opportunity?** “Assessment Center” – Our primary target is the HR domain, specifically the Assessment Center methodology. This is a globally recognized method for evaluating leadership potential in lead-level personnel, where candidates are placed in various real-world scenarios to assess their ability to lead. Traditionally, these assessments rely heavily on human involvement, with professors or experts playing specific roles in one-on-one role-playing exercises and conducting evaluations afterward. Since this process is highly labor-intensive, there is a significant opportunity to dramatically improve efficiency. Our interactive agent, designed to assess candidates not just through scripted scenarios but through emotionally dynamic interactions, can be a game-changer in this field.
+
+**Broader Impact Business Impact** → “Extensive Scalability” Social Impact → “Restoring Lost Human Connection” Our easy-to-set-up role-playing tool has the potential to expand across multiple domains. If it proves its value as a PoC (Proof of Concept) in Assessment Centers, it can scale into education, a much larger industry sector. Ultimately, forming emotional connections is key to maximizing user demand for Voice UX (VUX). This insight comes from our experience developing shopping assistant chatbots—simply providing information is not enough to drive retention. Moreover, in today’s society, where emotional interactions are increasingly rare and people are less accustomed to forming real human-to-human relationships, our tool can serve as a training mechanism. It can help users intuitively understand the complexity of social interactions, including the importance of consideration and empathy.
+
+**Hackathon Planning**
+
+Agent Design
+Scenario Development
+Generative AI-Based Asset Design
+Utilization of ElevenLabs API
+Engineering Stack
