@@ -11,7 +11,7 @@ export default function StartPage() {
 
   return (
     <div className="flex flex-col gap-4 items-center justify-between h-screen py-40">
-      <h1 className="text-4xl font-bold mb-8 text-center">Title</h1>
+      <h1 className="text-4xl font-bold mb-8 text-center">TEST</h1>
 
       <div className="flex flex-col gap-4 items-center">
         <button

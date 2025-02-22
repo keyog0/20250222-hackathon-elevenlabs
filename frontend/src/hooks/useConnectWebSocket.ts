@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageType } from "./useWebSocket";
 
 // SpeechRecognition 타입 정의
@@ -111,9 +111,9 @@ export const useConnectWebSocket = ({
     }
   };
 
-  const handleClearTranscript = () => {
+  const handleClearTranscript = useCallback(() => {
     setTranscript("");
-  };
+  }, []);
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedLanguage(e.target.value);

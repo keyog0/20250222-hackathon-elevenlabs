@@ -3,15 +3,48 @@ import { useEffect, useRef, useState, useCallback } from "react";
 // MessageType 유니온 타입
 export type MessageType = "system" | "speaking" | "text" | "file";
 
+// EmotionState 인터페이스
+interface EmotionState {
+  anger: number;
+  anticipation: number;
+  disgust: number;
+  fear: number;
+  joy: number;
+  sadness: number;
+  surprise: number;
+  trust: number;
+}
+
+// Emotion 인터페이스
+interface Emotion {
+  emotion: string;
+  emotion_state: EmotionState;
+  likeability: number;
+}
+
+// ScenarioInfo 인터페이스
+interface ScenarioInfo {
+  current_progress: number;
+  description: string;
+  goals: string[];
+  title: string;
+}
+
 // WebSocket 메시지 타입 정의
 export interface WebSocketMessage {
-  type: MessageType;
+  audio_data: string | null;
   content: string;
-  created_at?: string;
-  is_speaking: boolean;
-  file_url?: string;
-  message_id?: string;
-  sender: "agent" | "user" | "system";
+  created_at: string;
+  emotion: Emotion;
+  file_url: string | null;
+  is_speaking: boolean | null;
+  message_id: string;
+  metadata: string | null;
+  requires_user_action: boolean;
+  scenario_info: ScenarioInfo;
+  sender: "agent" | "user";
+  tips: string | null;
+  type: "text" | string;
 }
 
 // WebSocket 훅의 반환 타입
@@ -77,7 +110,7 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
   // 메시지 전송 함수
   const sendMessage = useCallback((type: MessageType, content: string) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      const message: WebSocketMessage = {
+      const message: Partial<WebSocketMessage> = {
         is_speaking: type === "speaking",
         type: type === "speaking" ? "text" : type,
         content,

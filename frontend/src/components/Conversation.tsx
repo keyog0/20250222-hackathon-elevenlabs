@@ -24,14 +24,10 @@ const Conversation = ({ messages }: Props) => {
 const OtherConversation = ({ messages }: Pick<Props, "messages">) => {
   return (
     <div className="min-h-[150px] p-4 border rounded bg-gray-50 text-black relative w-full text-xl">
-      {messages ? (
-        <div>
-          {messages.map((msg, index) => (
-            <TextAnimate key={index} animation="blurInUp" by="character" once>
-              {msg.content}
-            </TextAnimate>
-          ))}
-        </div>
+      {messages[messages.length - 1] ? (
+        <TextAnimate animation="blurInUp" by="character" once>
+          {messages[messages.length - 1].content}
+        </TextAnimate>
       ) : (
         "음성 입력을 시작하려면 버튼을 클릭하세요."
       )}
