@@ -1,0 +1,18 @@
+[project]
+name = "persona-agent"
+version = "0.1.0"
+description = "A persona-based conversational agent using LangGraph"
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[dependencies]
+python = "3.11.*"
+openai = "*"
+pydantic = "*"
+rich = "*"
+python-dotenv = "*"
+langgraph = "*"
+
+[tasks]
+start = { cmd = "python -m agent.cli" }
+test = { cmd = "python -m pytest tests" } 
