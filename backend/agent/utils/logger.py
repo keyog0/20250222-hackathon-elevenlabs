@@ -1,13 +1,20 @@
 import logging
+import os
 from rich.logging import RichHandler
 from typing import Any, Dict
 
-# Set up logging with Rich handler
+# Create logs directory if it doesn't exist
+os.makedirs("logs", exist_ok=True)
+
+# Set up logging with Rich handler and File handler
 logging.basicConfig(
     level=logging.INFO,
-    format="%(message)s",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="[%X]",
-    handlers=[RichHandler(rich_tracebacks=True)]
+    handlers=[
+        RichHandler(rich_tracebacks=True),
+        logging.FileHandler("logs/agent.log")
+    ]
 )
 
 # Create logger

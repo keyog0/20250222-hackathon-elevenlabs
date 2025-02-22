@@ -28,9 +28,13 @@ async def chat_with_agent():
         # Print agent response
         print(f"\n{agent.state['persona'].name}: {response.content}")
         
-        # Print emotion and affinity if available
+        # Print all emotions and affinity if available
         if response.emotion:
-            print(f"Emotion: {response.emotion.emotion} (Affinity: {response.emotion.likeability:.2f})")
+            print(f"\nEmotions:")
+            if response.emotion.emotion_state:
+                for emotion_name, intensity in response.emotion.emotion_state.model_dump().items():
+                    print(f"  {emotion_name}: {intensity:.2f}")
+            print(f"Affinity: {response.emotion.likeability:.2f}")
         
         # Print scenario info if available
         if response.scenario_info:

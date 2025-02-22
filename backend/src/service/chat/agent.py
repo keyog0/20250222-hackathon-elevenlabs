@@ -97,7 +97,7 @@ class AgentService:
 
     def _threshold_affinity(self, value: float) -> float:
         """Apply threshold to affinity score"""
-        if abs(value) < 1.0:  # 작은 변화는 무시
+        if abs(value) < 0.5:  # 작은 변화 무시 기준을 1.0에서 0.5로 낮춤
             return 0.0
         if value > 100.0:
             return 100.0
@@ -165,6 +165,7 @@ class AgentService:
             {chr(10).join(f"- {goal}" for goal in self.state["scenario"].goals)}
 
             현재 상황을 분석하고, 관계 향상을 위한 구체적인 팁을 제안해주세요.
+            일반적인 텍스트 형식으로 응답해주세요. (JSON 형식이 아닌)
             """
             
             response = await self.workflow.llm.generate_response(
@@ -177,8 +178,8 @@ class AgentService:
                 temperature=0.7
             )
             return response.content
-        except Exception:
-            logger.error("Error generating relationship tips")
+        except Exception as e:
+            logger.error(f"Error generating relationship tips: {str(e)}")
             return None
 
     async def convert_text_to_audio(self, text: str) -> bytes:
@@ -199,7 +200,9 @@ class AgentService:
                 "similarity_boost": 0.75,
             },
         }
-        async with httpx.AsyncClient() as client:
+        # Add timeout settings
+        timeout_settings = httpx.Timeout(30.0, connect=60.0)  # 30 seconds for read, 60 seconds for connect
+        async with httpx.AsyncClient(timeout=timeout_settings) as client:
             response = await client.post(url, headers=headers, json=data, params=query_params)
         if response.status_code == 200:
             return response.content

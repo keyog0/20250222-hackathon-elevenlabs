@@ -254,7 +254,21 @@ def create_state_node(llm: LLMUtils):
                     logger.info(f"[Reason] {analysis['emotion_analysis']['primary_emotion']['reason']}")
                     
                     # Update and validate affinity change
-                    affinity_change = max(min(analysis["affinity_change"], 5.0), -5.0)
+                    affinity_change = max(min(analysis["affinity_change"], 15.0), -5.0)
+                    if "interaction_quality" in analysis["interaction_metrics"]:
+                        interaction_quality = analysis["interaction_metrics"]["interaction_quality"]
+                        
+                        # 시나리오 보너스 적용
+                        scenario_modifiers = state["scenario"].state_modifiers
+                        if "affinity_boost" in scenario_modifiers:
+                            boost_condition = scenario_modifiers["affinity_boost"]["condition"]
+                            boost_value = scenario_modifiers["affinity_boost"]["value"]
+                            
+                            # 조건 평가 및 보너스 적용
+                            if eval(boost_condition, {"result": {"interaction_quality": interaction_quality}}):
+                                affinity_change += boost_value
+                                logger.info(f"Applied affinity boost: +{boost_value} (total: {affinity_change})")
+                    
                     old_affinity = state["state"].affinity_score
                     state["state"].update_affinity(affinity_change)
                     

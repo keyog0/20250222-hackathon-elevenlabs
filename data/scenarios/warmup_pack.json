@@ -37,7 +37,7 @@
     "state_modifiers": {
         "affinity_boost": {
             "condition": "result.get('interaction_quality', 0) > 0.5",
-            "value": 5.0
+            "value": 10.0
         },
         "trust_level": {
             "condition": "result.get('helpful_guidance', 0) > 0.7",

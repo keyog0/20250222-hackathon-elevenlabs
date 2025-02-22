@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from enum import Enum
 from ..utils.llm_utils import LLMUtils
+from ..utils.logger import logger
 
 class ScenarioType(str, Enum):
     CONVERSATION = "conversation"
@@ -111,42 +112,36 @@ class ScenarioModel(BaseModel):
         
         return evaluation["should_end"]
 
-    def update_available_scenarios(self, current_state: Any) -> List[str]:
-        """Update and return available next scenarios based on current state."""
-        if not self.llm:
-            return [s for s in self.next_scenarios if s not in current_state.completed_scenarios]
+    def update_available_scenarios(self, current_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Update and return available scenarios based on current state."""
+        try:
+            # Get state object from dict if needed
+            state = current_state.get("state", {})
             
-        # Get conversation history from state's context
-        conversation_history = []
-        if hasattr(current_state, 'completed_scenarios'):
-            # We received a StateModel directly
-            conversation_history = []  # Default to empty if no context available
-        else:
-            # We received the full agent state dictionary
-            conversation_history = current_state.get("context", {}).short_term.conversation_history
-        
-        # Use LLM to select appropriate next scenarios
-        selected_scenario = self.llm.select_next_scenario(
-            available_scenarios=[
-                {
-                    "id": s_id,
-                    "title": s_id,
-                    "description": "Scenario description"
-                }
-                for s_id in self.next_scenarios
-                if (hasattr(current_state, 'completed_scenarios') and s_id not in current_state.completed_scenarios) or
-                   (isinstance(current_state, dict) and s_id not in current_state["state"].completed_scenarios)
-            ],
-            current_state={
-                "emotions": current_state.current_emotions if hasattr(current_state, 'current_emotions') 
-                          else current_state["state"].current_emotions,
-                "affinity": current_state.affinity_score if hasattr(current_state, 'affinity_score')
-                          else current_state["state"].affinity_score
-            },
-            conversation_history=conversation_history
-        )
-        
-        return [selected_scenario]  # Return the selected scenario ID
+            # Get completed scenarios, handling both dict and StateModel cases
+            completed_scenarios = []
+            if hasattr(state, "completed_scenarios"):
+                completed_scenarios = state.completed_scenarios
+            elif isinstance(state, dict) and "completed_scenarios" in state:
+                completed_scenarios = state["completed_scenarios"]
+            
+            # Filter available scenarios
+            available_scenarios = {}
+            for scenario_id in self.next_scenarios:
+                if scenario_id not in completed_scenarios:
+                    available_scenarios[scenario_id] = {
+                        "scenario_id": scenario_id,
+                        "type": self.type,
+                        "title": f"Next Scenario: {scenario_id}",
+                        "description": "Transitioning to next scenario..."
+                    }
+            
+            return available_scenarios
+            
+        except Exception as e:
+            logger.error(f"Error updating available scenarios: {str(e)}")
+            # Return empty dict as fallback
+            return {}
 
     async def get_state_modifications(self, interaction_result: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate state modifications based on interaction results."""

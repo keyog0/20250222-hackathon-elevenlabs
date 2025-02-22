@@ -204,7 +204,12 @@ class LLMUtils:
         2. 최근 대화 주제와 관심사
         3. 자연스러운 진행과 스토리 흐름
         
-        선택한 시나리오 ID와 간단한 설명을 반환하세요.
+        다음 JSON 형식으로 응답하세요:
+        {
+            "scenario_id": string,
+            "reason": string,
+            "confidence": float
+        }
         """
         
         try:
@@ -220,6 +225,6 @@ class LLMUtils:
                 temperature=0.7
             )
             
-            return response.content  # Will contain scenario_id and explanation
+            return response.content
         except Exception as e:
             raise Exception(f"Error selecting next scenario: {str(e)}") 

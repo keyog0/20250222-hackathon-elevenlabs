@@ -74,33 +74,38 @@ def create_scenario_node(llm: LLMUtils):
                 # Mark current scenario as complete
                 state["state"].complete_current_scenario()
                 
-                # Get next scenario
-                next_scenario = await _select_next_scenario(
-                    current_scenario,
-                    state["state"],
-                    state["context"],
-                    completion_analysis
-                )
+                # Get available scenarios
+                available_scenarios = current_scenario.update_available_scenarios({
+                    "state": state["state"]
+                })
                 
-                if next_scenario:
-                    old_scenario_id = current_scenario.scenario_id
+                if available_scenarios:
+                    # Get next scenario
+                    next_scenario = await _select_next_scenario(
+                        state,
+                        llm,
+                        available_scenarios
+                    )
                     
-                    # Initialize new scenario
-                    state["scenario"] = next_scenario
-                    state["state"].current_scenario_id = next_scenario.scenario_id
-                    
-                    # Update metadata to indicate scenario change
-                    if state["response"] and "metadata" in state["response"]:
-                        state["response"]["metadata"].update({
-                            "scenario_changed": True,
-                            "previous_scenario": old_scenario_id,
-                            "completion_reason": completion_analysis["reason"],
-                            "goals_achieved": completion_analysis["goals_achieved"]
-                        })
-                    
-                    # Log scenario transition
-                    log_scenario_update(old_scenario_id, next_scenario.scenario_id)
-                    logger.info(f"[Scenario] New Goals: {next_scenario.goals}")
+                    if next_scenario:
+                        old_scenario_id = current_scenario.scenario_id
+                        
+                        # Initialize new scenario
+                        state["scenario"] = next_scenario
+                        state["state"].current_scenario_id = next_scenario.scenario_id
+                        
+                        # Update metadata to indicate scenario change
+                        if state["response"] and "metadata" in state["response"]:
+                            state["response"]["metadata"].update({
+                                "scenario_changed": True,
+                                "previous_scenario": old_scenario_id,
+                                "completion_reason": completion_analysis["reason"],
+                                "goals_achieved": completion_analysis["goals_achieved"]
+                            })
+                        
+                        # Log scenario transition
+                        log_scenario_update(old_scenario_id, next_scenario.scenario_id)
+                        logger.info(f"[Scenario] New Goals: {next_scenario.goals}")
             
             return state
             
@@ -220,79 +225,50 @@ def create_scenario_node(llm: LLMUtils):
             }
 
     async def _select_next_scenario(
-        current_scenario: ScenarioModel,
-        state: Any,
-        context: Any,
-        completion_analysis: Dict[str, Any]
-    ) -> Optional[ScenarioModel]:
-        """Select the most appropriate next scenario."""
+        state: AgentState,
+        llm: LLMUtils,
+        available_scenarios: Dict[str, Any]
+    ) -> ScenarioModel:
+        """Select next scenario based on current state."""
         try:
-            # Get available scenarios
-            available_next = current_scenario.update_available_scenarios({
-                "state": state,
-                "context": context
-            })
+            # Get current scenario for reference
+            current_scenario = state["scenario"]
             
-            # Filter based on requirements
-            valid_next = [
-                s_id for s_id in available_next
-                if current_scenario.check_requirements(state, context)
-            ]
-            
-            if not valid_next:
-                logger.warning("[Scenario] No valid next scenarios available")
-                return None
-            
-            # Analyze best next scenario
-            system_prompt = """
-            다음 시나리오를 선택하세요. 다음을 고려하세요:
-            1. 현재 감정 상태와 관계 수준
-            2. 이전 대화의 주제와 흐름
-            3. 달성한 목표와 남은 목표
-            4. 자연스러운 전개
-
-            가장 적절한 시나리오 ID를 반환하세요.
-            """
-            
-            selection_context = {
-                "available_scenarios": valid_next,
-                "current_state": {
-                    "emotions": state.current_emotions,
-                    "affinity": state.affinity_score,
-                    "completed_goals": completion_analysis["goals_achieved"]
-                },
-                "conversation_state": completion_analysis.get("conversation_quality", {})
-            }
-            
-            response = await llm.generate_response(
-                system_prompt=system_prompt,
-                user_prompt=str(selection_context),
-                temperature=0.3
+            # Get next scenario response from LLM
+            next_scenario_response = await llm.select_next_scenario(
+                available_scenarios=list(available_scenarios.values()),
+                current_state=state["state"].dict(),
+                conversation_history=[{
+                    "speaker": "user" if msg.get("is_user") else "agent",
+                    "message": msg.get("content", "")
+                } for msg in state["context"].short_term.conversation_history]
             )
             
-            selected_id = response.content.strip()
-            if selected_id in valid_next:
-                # Create new scenario instance
-                return ScenarioModel(
-                    scenario_id=selected_id,
-                    llm=llm,
-                    type=current_scenario.type,  # Preserve scenario type
-                    title=f"New Scenario: {selected_id}",
-                    description="Transitioning to new scenario..."
-                )
+            # Parse the response to get scenario_id
+            try:
+                import json
+                response_data = json.loads(next_scenario_response)
+                next_scenario_id = response_data.get("scenario_id")
+                
+                if next_scenario_id and next_scenario_id in available_scenarios:
+                    # Create new scenario model
+                    return ScenarioModel(
+                        **available_scenarios[next_scenario_id],
+                        llm=llm
+                    )
+            except Exception as e:
+                logger.error(f"Error parsing next scenario response: {str(e)}")
             
-            # Fallback to first valid scenario
-            logger.warning(f"[Scenario] Selected scenario {selected_id} not valid, using fallback")
+            # Fallback to first available scenario if selection fails
+            logger.warning("[ScenarioNode] Failed to select next scenario, using fallback")
+            fallback_id = list(available_scenarios.keys())[0]
             return ScenarioModel(
-                scenario_id=valid_next[0],
-                llm=llm,
-                type=current_scenario.type,
-                title=f"New Scenario: {valid_next[0]}",
-                description="Transitioning to new scenario..."
+                **available_scenarios[fallback_id],
+                llm=llm
             )
+            
         except Exception as e:
             logger.error(f"[ScenarioNode] Error selecting next scenario: {str(e)}")
-            logger.exception(e)
-            return None
+            raise
 
     return manage_scenario 
