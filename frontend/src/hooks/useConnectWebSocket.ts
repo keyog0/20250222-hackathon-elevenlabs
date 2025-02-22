@@ -101,6 +101,12 @@ export const useConnectWebSocket = () => {
     }
   };
 
+  const handleStopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.abort();
+    }
+  };
+
   const handleClearTranscript = () => {
     setTranscript("");
   };
@@ -117,6 +123,7 @@ export const useConnectWebSocket = () => {
     handleStartListening,
     handleClearTranscript,
     handleLanguageChange,
+    handleStopListening,
     messages,
     wsError,
     isConnected,

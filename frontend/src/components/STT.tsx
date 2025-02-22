@@ -18,6 +18,7 @@ export const STT = () => {
     handleStartListening,
     handleClearTranscript,
     handleLanguageChange,
+    handleStopListening,
     messages,
     wsError,
   } = useConnectWebSocket();
@@ -37,8 +38,7 @@ export const STT = () => {
         <PulsatingButton
           className="flex justify-center items-center p-2 bg-pink-600"
           pulseColor={isListening ? "#fff" : "#ff0096"}
-          onClick={handleStartListening}
-          disabled={isListening}
+          onClick={isListening ? handleStopListening : handleStartListening}
         >
           {isListening ? (
             <EllipsisHorizontalCircleIcon className="size-6" />
