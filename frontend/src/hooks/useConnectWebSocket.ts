@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useWebSocket } from "./useWebSocket";
+import { MessageType } from "./useWebSocket";
 
 // SpeechRecognition 타입 정의
 interface SpeechRecognitionEvent extends Event {
@@ -44,17 +44,20 @@ declare global {
   }
 }
 
-export const useConnectWebSocket = () => {
+type UseConnectWebSocketProps = {
+  sendMessage: (type: MessageType, content: string) => void;
+
+  isConnected: boolean;
+};
+
+export const useConnectWebSocket = ({
+  sendMessage,
+  isConnected,
+}: UseConnectWebSocketProps) => {
   const [transcript, setTranscript] = useState<string>("");
   const [isListening, setIsListening] = useState<boolean>(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string>("ko-KR");
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
-  const {
-    sendMessage,
-    messages,
-    isConnected,
-    error: wsError,
-  } = useWebSocket(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws");
 
   useEffect(() => {
     const SpeechRecognition =
@@ -76,7 +79,7 @@ export const useConnectWebSocket = () => {
 
       // WebSocket을 통해 서버로 음성 인식 결과 전송
       if (isConnected) {
-        sendMessage(transcript);
+        sendMessage("speaking", transcript);
       }
     };
 
@@ -124,8 +127,5 @@ export const useConnectWebSocket = () => {
     handleClearTranscript,
     handleLanguageChange,
     handleStopListening,
-    messages,
-    wsError,
-    isConnected,
   };
 };

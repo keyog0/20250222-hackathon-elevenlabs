@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
 // MessageType 유니온 타입
-export type MessageType = "system" | "text" | "file";
+export type MessageType = "system" | "speaking" | "text" | "file";
 
 // WebSocket 메시지 타입 정의
 export interface WebSocketMessage {
@@ -17,7 +17,7 @@ export interface WebSocketMessage {
 
 // WebSocket 훅의 반환 타입
 interface UseWebSocketReturn {
-  sendMessage: (message: string) => void;
+  sendMessage: (type: MessageType, content: string) => void;
   messages: WebSocketMessage[];
   isConnected: boolean;
   error: string | null;
@@ -75,11 +75,11 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
   }, [url]);
 
   // 메시지 전송 함수
-  const sendMessage = useCallback((content: string) => {
+  const sendMessage = useCallback((type: MessageType, content: string) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       const message: WebSocketMessage = {
-        is_speaking: false,
-        type: "text",
+        is_speaking: type === "speaking",
+        type,
         content,
         created_at: Date.now(),
       };

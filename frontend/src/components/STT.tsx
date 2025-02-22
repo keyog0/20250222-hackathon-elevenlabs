@@ -6,12 +6,18 @@ import {
   XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { PulsatingButton } from "./magicui/pulsating-button";
-import { useConnectWebSocket } from "@/hooks";
+import { useConnectWebSocket, useWebSocket } from "@/hooks";
 import { WebSocketStatus } from "./WebSocketStatus";
 
 export const STT = () => {
   const {
+    sendMessage,
+    messages,
     isConnected,
+    error: wsError,
+  } = useWebSocket(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws");
+
+  const {
     transcript,
     isListening,
     selectedLanguage,
@@ -19,9 +25,10 @@ export const STT = () => {
     handleClearTranscript,
     handleLanguageChange,
     handleStopListening,
-    messages,
-    wsError,
-  } = useConnectWebSocket();
+  } = useConnectWebSocket({
+    sendMessage,
+    isConnected,
+  });
 
   const RemoveButton = () => (
     <button
