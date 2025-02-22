@@ -66,5 +66,33 @@
             "비윤리적 행동",
             "소극적인 태도"
         ]
+    },
+    "voice":{
+        "voice_id": "AW5wrnG1jVizOYY7R1Oo",
+        "default":{
+            "stability": 0.5,
+            "similarity_boost": 0.5,
+            "style": 0,
+            "use_speaker_boost": true
+        },
+        "angry":{
+            "stability": 0.82,
+            "similarity_boost": 1,
+            "style": 0,
+            "use_speaker_boost": true
+        },
+        "smile":{
+            "stability": 1,
+            "similarity_boost": 0,
+            "style": 0.49,
+            "use_speaker_boost": true
+        },
+        "stoic":{
+            
+            "stability": 0.5,
+            "similarity_boost": 0.75,
+            "style": 0,
+            "use_speaker_boost": true
+        }
     }
 }

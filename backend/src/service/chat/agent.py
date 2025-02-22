@@ -90,21 +90,21 @@ class AgentService:
         """Create ScenarioInfo from current scenario."""
         # Get progress from state
         progress = self.state["state"].get_progress()
-        
+
         # Get completed and remaining goals
         completed_goals = self.state["state"].completed_goals
         remaining_goals = self.state["state"].get_remaining_goals()
-        
+
         # Get newly achieved goals from metadata if available
         new_achievements = []
         if hasattr(self.state, "response") and self.state["response"]:
             metadata = self.state["response"].get("metadata", {})
             new_achievements = metadata.get("new_achievements", [])
-        
+
         # Create detailed scenario description
         detailed_description = f"{scenario.description}\n\n"
         detailed_description += "📋 시나리오 목표:\n"
-        
+
         # Add all goals with their status
         for goal in self.state["state"].total_goals:
             if goal in completed_goals:
@@ -114,16 +114,13 @@ class AgentService:
                     detailed_description += f"✅ {goal}\n"
             else:
                 detailed_description += f"⬜ {goal}\n"
-        
+
         # Add progress percentage
         progress_percentage = int(progress * 100)
         detailed_description += f"\n진행도: {progress_percentage}% 완료"
 
         return ScenarioInfo(
-            title=scenario.title,
-            description=detailed_description,
-            goals=scenario.goals,
-            current_progress=progress
+            title=scenario.title, description=detailed_description, goals=scenario.goals, current_progress=progress
         )
 
     def _threshold_affinity(self, value: float) -> float:
@@ -146,10 +143,10 @@ class AgentService:
             # Get available scenarios
             available_scenarios = self.config_manager.load_all_scenarios()
             current_scenario_id = self.state["state"].current_scenario_id
-            
+
             # Get list of scenario IDs
             scenario_ids = list(available_scenarios.keys())
-            
+
             # Find current scenario index
             try:
                 current_index = scenario_ids.index(current_scenario_id)
@@ -158,21 +155,21 @@ class AgentService:
             except ValueError:
                 # If current scenario not found, start from beginning
                 next_scenario_id = scenario_ids[0]
-            
+
             # Load next scenario
             next_scenario = ScenarioModel(**available_scenarios[next_scenario_id])
             next_scenario.llm = self.llm  # Use stored LLM instance
-            
+
             # Update state
             self.state["scenario"] = next_scenario
             self.state["state"].current_scenario_id = next_scenario_id
             self.state["state"].set_scenario_goals(next_scenario.goals)
-            
+
             # Clear context for new scenario
             self.state["context"] = ContextModel()
-            
+
             logger.info(f"Loaded next scenario: {next_scenario_id}")
-            
+
         except Exception as e:
             logger.error(f"Error loading next scenario: {str(e)}")
             raise
@@ -182,7 +179,7 @@ class AgentService:
         try:
             # Increment interaction counter
             self.interaction_count += 1
-            
+
             # Increment conversation counter
             self.state["state"].increment_conversation_count()
 
@@ -238,7 +235,7 @@ class AgentService:
                 scenario_info=self._create_scenario_info(self.state["scenario"]),
                 tips=tips,
                 requires_user_action=response.get("metadata", {}).get("scenario_changed", False),
-                metadata=response.get("metadata", {})
+                metadata=response.get("metadata", {}),
             )
 
         except Exception as e:
@@ -279,7 +276,10 @@ class AgentService:
 
     async def convert_text_to_audio(self, text: str) -> bytes:
         """Convert text to audio using ElevenLabs API."""
-        voice_id = "JBFqnCBsd6RMkjVDRZzb"
+        voice = self.state["persona"].voice
+        voice_id = voice["voice_id"]
+        voice_settings = voice["default"]
+
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
         headers = {
             "Accept": "audio/mpeg",
@@ -290,10 +290,7 @@ class AgentService:
         data = {
             "text": text,
             "model_id": "eleven_multilingual_v2",
-            "voice_settings": {
-                "stability": 0.75,
-                "similarity_boost": 0.75,
-            },
+            "voice_settings": voice_settings,
         }
         # Add timeout settings
         timeout_settings = httpx.Timeout(30.0, connect=60.0)  # 30 seconds for read, 60 seconds for connect
@@ -303,8 +300,3 @@ class AgentService:
             return response.content
         else:
             raise Exception(f"Elevenlabs API 호출 실패: {response.status_code} {response.text}")
-
-
-class LLMAgentService:
-    def __init__(self, db: Session):
-        self.db = db

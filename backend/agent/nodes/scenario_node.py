@@ -25,16 +25,18 @@ def create_scenario_node(llm: LLMUtils):
             # Update goals based on completion analysis
             for achieved_goal in completion_analysis.get("goals_achieved", []):
                 state["state"].update_progress(achieved_goal)
-            
+
             # Update response metadata with goal progress
             if state["response"] and "metadata" in state["response"]:
-                state["response"]["metadata"].update({
-                    "goals_achieved": state["state"].completed_goals,
-                    "remaining_goals": state["state"].get_remaining_goals(),
-                    "current_progress": state["state"].get_progress(),
-                    "total_goals": state["state"].total_goals,
-                    "new_achievements": completion_analysis.get("goals_achieved", [])
-                })
+                state["response"]["metadata"].update(
+                    {
+                        "goals_achieved": state["state"].completed_goals,
+                        "remaining_goals": state["state"].get_remaining_goals(),
+                        "current_progress": state["state"].get_progress(),
+                        "total_goals": state["state"].total_goals,
+                        "new_achievements": completion_analysis.get("goals_achieved", []),
+                    }
+                )
 
                 # Add goal progress message to response
                 goal_progress = "\n\n📊 목표 진행 상황:\n"
@@ -42,7 +44,7 @@ def create_scenario_node(llm: LLMUtils):
                     goal_progress += "\n✅ 달성한 목표:\n"
                     for goal in state["state"].completed_goals:
                         goal_progress += f"  - {goal}\n"
-                
+
                 goal_progress += "\n🎯 남은 목표:\n"
                 for goal in state["state"].get_remaining_goals():
                     goal_progress += f"  - {goal}\n"
@@ -53,7 +55,7 @@ def create_scenario_node(llm: LLMUtils):
                         goal_progress += f"  - {goal}\n"
 
                 state["response"]["response_text"] += goal_progress
-            
+
             # Check for failure conditions
             if (
                 not completion_analysis["requirements_status"]["affinity"]["met"]
@@ -120,7 +122,7 @@ def create_scenario_node(llm: LLMUtils):
                     # Initialize new scenario
                     state["scenario"] = next_scenario
                     state["state"].current_scenario_id = next_scenario.scenario_id
-                    
+
                     # Set new scenario goals
                     state["state"].set_scenario_goals(next_scenario.goals)
 
@@ -213,7 +215,7 @@ def create_scenario_node(llm: LLMUtils):
             "affinity": state.affinity_score,
             "requirements": scenario.requirements,
             "completed_goals": state.completed_goals,  # Add completed goals for context
-            "progress_percentage": state.get_progress()  # Add current progress
+            "progress_percentage": state.get_progress(),  # Add current progress
         }
 
         try:
@@ -260,52 +262,44 @@ def create_scenario_node(llm: LLMUtils):
             }
 
     async def _select_next_scenario(
-        current_scenario: ScenarioModel,
-        state: Any,
-        context: Any,
-        completion_analysis: Dict[str, Any]
+        current_scenario: ScenarioModel, state: Any, context: Any, completion_analysis: Dict[str, Any]
     ) -> Optional[ScenarioModel]:
         """Select next scenario based on current state."""
         try:
             # Get available scenarios
             available_scenarios = current_scenario.update_available_scenarios({"state": state})
-            
+
             if not available_scenarios:
                 return None
-            
+
             # Get next scenario response from LLM
             next_scenario_response = await current_scenario.llm.select_next_scenario(
                 available_scenarios=list(available_scenarios.values()),
                 current_state=state.dict(),
-                conversation_history=[{
-                    "speaker": "user" if msg.get("is_user") else "agent",
-                    "message": msg.get("content", "")
-                } for msg in context.short_term.conversation_history]
+                conversation_history=[
+                    {"speaker": "user" if msg.get("is_user") else "agent", "message": msg.get("content", "")}
+                    for msg in context.short_term.conversation_history
+                ],
             )
-            
+
             # Parse the response to get scenario_id
             try:
                 import json
+
                 response_data = json.loads(next_scenario_response)
                 next_scenario_id = response_data.get("scenario_id")
-                
+
                 if next_scenario_id and next_scenario_id in available_scenarios:
                     # Create new scenario model
-                    return ScenarioModel(
-                        **available_scenarios[next_scenario_id],
-                        llm=current_scenario.llm
-                    )
+                    return ScenarioModel(**available_scenarios[next_scenario_id], llm=current_scenario.llm)
             except Exception as e:
                 logger.error(f"Error parsing next scenario response: {str(e)}")
-            
+
             # Fallback to first available scenario if selection fails
             logger.warning("[ScenarioNode] Failed to select next scenario, using fallback")
             fallback_id = list(available_scenarios.keys())[0]
-            return ScenarioModel(
-                **available_scenarios[fallback_id],
-                llm=current_scenario.llm
-            )
-            
+            return ScenarioModel(**available_scenarios[fallback_id], llm=current_scenario.llm)
+
         except Exception as e:
             logger.error(f"[ScenarioNode] Error selecting next scenario: {str(e)}")
             raise
