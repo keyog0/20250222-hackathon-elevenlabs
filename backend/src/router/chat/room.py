@@ -50,7 +50,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_ses
                 if message.is_speaking:
                     continue
                 else:
-                    agent_response = await agent_service.get_agent_response(message.content)
+                    agent_response = await agent_service.get_agent_response(message)
                     await manager.broadcast(agent_response.model_dump(), room_id)
 
     except WebSocketDisconnect:

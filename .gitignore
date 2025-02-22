@@ -63,3 +63,4 @@ logs/
 
 .cursor
 .env
+backend/config.json
