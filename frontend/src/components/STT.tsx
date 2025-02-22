@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { useWebSocket } from "../utils/websocket";
 
 // SpeechRecognition 타입 정의
 interface SpeechRecognitionEvent extends Event {
@@ -50,6 +51,14 @@ export const STT = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<string>("ko-KR");
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
 
+  // WebSocket 연결
+  const {
+    sendMessage,
+    messages,
+    isConnected,
+    error: wsError,
+  } = useWebSocket(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws");
+
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -67,6 +76,11 @@ export const STT = () => {
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = event.results[0][0].transcript;
       setTranscript((prev) => prev + " " + transcript);
+
+      // WebSocket을 통해 서버로 음성 인식 결과 전송
+      if (isConnected) {
+        sendMessage(transcript);
+      }
     };
 
     recognition.onstart = () => {
@@ -82,7 +96,7 @@ export const STT = () => {
     return () => {
       recognition.abort();
     };
-  }, [selectedLanguage]);
+  }, [selectedLanguage, isConnected, sendMessage]);
 
   const handleStartListening = () => {
     if (recognitionRef.current) {
@@ -126,6 +140,27 @@ export const STT = () => {
       </div>
       <div className="min-h-[100px] p-4 border rounded bg-gray-50 text-black">
         {transcript || "음성 입력을 시작하려면 버튼을 클릭하세요."}
+      </div>
+      {/* WebSocket 상태 표시 */}
+      <div className="text-sm">
+        <p className={isConnected ? "text-green-600" : "text-red-600"}>
+          {isConnected ? "서버 연결됨" : "서버 연결 안됨"}
+        </p>
+        {wsError && <p className="text-red-600">에러: {wsError}</p>}
+      </div>
+      {/* 서버로부터 받은 메시지 표시 */}
+      <div className="mt-4">
+        <h3 className="font-bold mb-2 ">서버 응답:</h3>
+        <div className="max-h-40 overflow-y-auto">
+          {messages.map((msg, index) => (
+            <div key={index} className="p-2 bg-gray-100 rounded mb-2">
+              <p className="text-black">{msg.content}</p>
+              <small className="text-gray-500">
+                {new Date(msg.timestamp).toLocaleString()}
+              </small>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
