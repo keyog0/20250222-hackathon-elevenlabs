@@ -1,0 +1,91 @@
+{
+    "editor.suggestSelection": "first",
+    "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
+    "python.languageServer": "Pylance",
+    "editor.fontSize": 15,
+    "settingsSync.ignoredSettings": [
+        "editor.fontSize",
+        "terminal.integrated.fontSize"
+    ],
+    "git.autofetch": true,
+    "jupyter.alwaysTrustNotebooks": true,
+    "workbench.editorAssociations": {
+        "*.ipynb": "jupyter-notebook"
+    },
+    "diffEditor.ignoreTrimWhitespace": false,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true
+    },
+    "black-formatter.args": [
+        "--line-length=120"
+    ],
+    "editor.formatOnSave": true,
+    "search.exclude": {
+        "**/.git": true,
+        "**/.venv": true
+    },
+    "pylint.lintOnChange": true,
+    "pylint.args": [
+        "c-extension-no-member",
+        "extension-pkg-whitelist=cv2",
+        "extension-pkg-whitelist=numpy",
+        "extension-pkg-whitelist=torch",
+        "--unsafe-load-any-extension=y",
+        "--max-line-length=150",
+        "--disable=missing-module-docstring",
+        "--disable=missing-class-docstring",
+        "--disable=missing-function-docstring",
+        "--disable=bare-except",
+        "--disable=consider-using-f-string"
+    ],
+    "python.autoComplete.addBrackets": true,
+    "python.analysis.completeFunctionParens": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+    },
+    "editor.inlineSuggest.enabled": true,
+    "editor.wordWrap": "off",
+    "git.confirmSync": false,
+    "python.analysis.autoFormatStrings": true,
+    "githubPullRequests.pullBranch": "never",
+    "window.commandCenter": false,
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "deepl",
+            "depth": 3
+        },
+        {
+            "name": "clip",
+            "depth": 3
+        },
+        {
+            "name": "torch",
+            "depth": 3
+        },
+        {
+            "name": "sklearn",
+            "depth": 2
+        },
+        {
+            "name": "matplotlib",
+            "depth": 2
+        },
+        {
+            "name": "scipy",
+            "depth": 2
+        },
+        {
+            "name": "django",
+            "depth": 2
+        },
+        {
+            "name": "flask",
+            "depth": 2
+        },
+        {
+            "name": "fastapi",
+            "depth": 2
+        }
+    ]
+}

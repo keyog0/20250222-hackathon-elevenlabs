@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "fasapi-template"
+version = "0.1.0"
+description = ""
+authors = ["Keunyoung-Jung <jgy206@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.2"
+pydantic-settings = "^2.6.0"
+pytest-asyncio = "^0.24.0"
+uvicorn = "^0.32.0"
+loguru = "^0.7.2"
+sqlalchemy = "^2.0.36"
+pyjwt = "^2.9.0"
+bcrypt = "^4.2.0"
+cashews = {extras = ["diskcache", "redis", "speedup"], version = "^7.3.2"}
+asyncpg = "^0.30.0"
+alembic = "^1.13.3"
+aiohttp = "^3.10.10"
+cryptography = "^43.0.3"
+greenlet = "^3.1.1"
+aiosqlite = "^0.20.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

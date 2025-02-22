@@ -1,0 +1,57 @@
+name: Deploy develop branch
+on:
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - ".github/workflows/main_deploy.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test environment Setup Python..
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - id: step1
+        name: Checkout
+        uses: actions/checkout@v2
+
+      - id: step2
+        name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - id: step3
+        name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - id: step4
+        name: Build, push image
+        env:
+          ECR_REGISTRY: ${{ steps.step3.outputs.registry }}
+          ECR_REPOSITORY: ${{ github.repository }}
+          ENV: prod
+        run: |
+          datetime=$(date +%Y%m%d%H%M --date='9 hour')
+          BASE_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:base
+          IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:${ENV}.${datetime}
+          IMAGE_LATEST=$ECR_REGISTRY/$ECR_REPOSITORY:${ENV}.latest
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+          docker build -t ${IMAGE} -t ${IMAGE_LATEST} -f ./docker/Dockerfile .
+
+          docker run --rm -e ENV_NAME=test -e PYTHONUNBUFFERED=1 ${IMAGE} python -m pytest tests
+
+          docker push ${IMAGE}
+          docker push ${IMAGE_LATEST}
+
+      - id: step5
+        name: Deploy
+        run: |
+          echo "do something"
