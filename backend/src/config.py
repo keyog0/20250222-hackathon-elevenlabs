@@ -28,6 +28,10 @@ class Settings(BaseSettings):
 
     # JWT
     ELEVENLABS_API_KEY: str = "your_elevenlabs_api_key"
+    
+    # OpenAI
+    OPENAI_API_KEY: str = "your_openai_api_key"
+    OPENAI_MODEL: str = "gpt-4-turbo-preview"
 
     class Config:
         env_file = ".env"

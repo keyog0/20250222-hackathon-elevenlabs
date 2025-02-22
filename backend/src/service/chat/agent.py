@@ -1,35 +1,188 @@
 from sqlalchemy.orm import Session
-from src.schemas.message import Emotion, MessageType, RoomMessage
+from backend.agent.models.context_model import ContextModel
+from backend.agent.models.persona_model import PersonaModel
+from backend.agent.models.scenario_model import ScenarioModel
+from backend.agent.models.state_model import StateModel
+from backend.src.schemas.message import Emotion, MessageType, RoomMessage, EmotionState, ScenarioInfo
+from backend.src.config import settings
 import base64
 import httpx
-from src.config import settings
+from typing import Dict, Any, Optional
 
-# Elevenlabs API 사용을 위한 API 키와 voice ID (실제 값으로 변경하세요)
+from backend.agent.workflow import create_agent_workflow, run_agent
+from backend.agent.utils.config_manager import ConfigManager
+from backend.agent.utils.llm_utils import LLMUtils
+from backend.agent.utils.logger import logger
 
 
 class AgentService:
     def __init__(self, db: Session):
         self.db = db
+        self.config_manager = ConfigManager()
+        self.workflow = None
+        self.state = None
+        self.interaction_count = 0
+        self.initialize()
 
-    async def get_agent_response(self, message: RoomMessage):
-        text_content = "Mock 메시지 이지롱"
+    def initialize(self):
+        """Initialize the agent with configuration and data."""
+        try:
+            # Reset interaction counter
+            self.interaction_count = 0
+            
+            # Load configuration
+            config = self.config_manager.load_config()
+            self.config_manager.ensure_data_directories()
+            
+            # Initialize LLM
+            llm = LLMUtils()
+            
+            # Load persona and scenarios
+            persona_data = self.config_manager.load_persona("persona0")  # Using the ENFJ persona
+            all_scenarios = self.config_manager.load_all_scenarios()
+            
+            # Get initial scenario
+            initial_scenario = ScenarioModel(**all_scenarios["warmup_pack"])
+            initial_scenario.llm = llm
+            
+            # Create initial state
+            persona = PersonaModel(**persona_data)
+            state = StateModel(
+                current_scenario_id=initial_scenario.scenario_id,
+                available_scenarios=[s_id for s_id in all_scenarios.keys()]
+            )
+            context = ContextModel()
+            
+            # Initialize workflow state
+            self.state = {
+                "persona": persona,
+                "state": state,
+                "context": context,
+                "scenario": initial_scenario,
+                "user_input": "",
+                "response": None
+            }
+            
+            # Create workflow
+            self.workflow = create_agent_workflow(llm, self.state)
+            
+        except Exception as e:
+            logger.error(f"Error during initialization: {str(e)}")
+            raise
 
-        # Elevenlabs API를 비동기 호출로 텍스트를 음성으로 변환
-        audio_bytes = await self.convert_text_to_audio(text_content)
+    def _get_dominant_emotion(self, emotions: Dict[str, float]) -> str:
+        """Get the dominant emotion from emotion state."""
+        return max(emotions.items(), key=lambda x: x[1])[0]
 
-        # 변환된 음성 데이터를 base64 인코딩 방식으로 처리하여 메시지에 포함합니다.
-        # 또는 별도의 스토리지(예: S3 등)에 업로드하여 해당 URL을 포함할 수도 있습니다.
-        audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+    def _create_emotion_state(self, emotions: Dict[str, float]) -> EmotionState:
+        """Convert emotion dictionary to EmotionState model."""
+        return EmotionState(**emotions)
 
-        return RoomMessage(
-            type=MessageType.text,
-            content=text_content,
-            sender="agent",
-            emotion=Emotion(emotion="happy", likeability=0.8),
-            audio_data=audio_base64,  # RoomMessage에 audio_data 필드가 있어야 합니다.
+    def _create_scenario_info(self, scenario: Any) -> ScenarioInfo:
+        """Create ScenarioInfo from current scenario."""
+        progress = 0.0
+        try:
+            if hasattr(self.state["context"], "short_term"):
+                if hasattr(self.state["context"].short_term, "progress"):
+                    progress = max(0.0, float(self.state["context"].short_term.progress))
+        except Exception:
+            pass
+            
+        return ScenarioInfo(
+            title=scenario.title,
+            description=scenario.description,
+            goals=scenario.goals,
+            current_progress=progress
         )
 
+    def _threshold_affinity(self, value: float) -> float:
+        """Apply threshold to affinity score"""
+        if abs(value) < 1.0:  # 작은 변화는 무시
+            return 0.0
+        if value > 100.0:
+            return 100.0
+        if value < 0.0:
+            return 0.0
+        return value
+
+    def _threshold_emotions(self, emotions: Dict[str, float]) -> Dict[str, float]:
+        """Apply threshold to emotion values"""
+        return {k: EmotionState.threshold_emotion(v) for k, v in emotions.items()}
+
+    async def get_agent_response(self, message: RoomMessage) -> RoomMessage:
+        """Generate agent response with all necessary information."""
+        try:
+            # Increment interaction counter
+            self.interaction_count += 1
+            
+            # Get response from workflow
+            response = await run_agent(self.workflow, message.content, self.state)
+            
+            # Get current emotion state and affinity
+            emotion_state = self._threshold_emotions(self.state["state"].current_emotions)
+            affinity = self._threshold_affinity(self.state["state"].affinity_score)
+            
+            # Get relationship tips if needed
+            tips = None
+            if self.interaction_count % 5 == 0:  # Every 5 interactions
+                tips = await self._get_relationship_tips()
+            
+            # Convert text to audio
+            audio_bytes = await self.convert_text_to_audio(response["response"])
+            audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+            
+            # Create response message
+            return RoomMessage(
+                type=MessageType.text,
+                content=response["response"],
+                sender="agent",
+                emotion=Emotion(
+                    emotion=self._get_dominant_emotion(emotion_state),
+                    likeability=affinity / 100,  # Convert to 0-1 scale
+                    emotion_state=self._create_emotion_state(emotion_state)
+                ),
+                audio_data=audio_base64,
+                scenario_info=self._create_scenario_info(self.state["scenario"]),
+                metadata=response["metadata"],
+                tips=tips,
+                requires_user_action=response.get("metadata", {}).get("scenario_changed", False)
+            )
+            
+        except Exception as e:
+            logger.error(f"Error generating response: {str(e)}")
+            raise
+
+    async def _get_relationship_tips(self) -> Optional[str]:
+        """Generate relationship tips using the workflow's LLM."""
+        try:
+            system_prompt = f"""
+            당신은 {self.state["persona"].name}입니다. {self.state["persona"].core_traits["occupation"]}이며, 다음과 같은 특성을 가지고 있습니다:
+
+            현재 시나리오: {self.state["scenario"].title}
+            시나리오 설명: {self.state["scenario"].description}
+            
+            현재 목표:
+            {chr(10).join(f"- {goal}" for goal in self.state["scenario"].goals)}
+
+            현재 상황을 분석하고, 관계 향상을 위한 구체적인 팁을 제안해주세요.
+            """
+            
+            response = await self.workflow.llm.generate_response(
+                system_prompt=system_prompt,
+                user_prompt=str({
+                    "current_affinity": self.state["state"].affinity_score,
+                    "emotions": self.state["state"].current_emotions,
+                    "interaction_count": self.interaction_count
+                }),
+                temperature=0.7
+            )
+            return response.content
+        except Exception:
+            logger.error("Error generating relationship tips")
+            return None
+
     async def convert_text_to_audio(self, text: str) -> bytes:
+        """Convert text to audio using ElevenLabs API."""
         voice_id = "JBFqnCBsd6RMkjVDRZzb"
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
         headers = {

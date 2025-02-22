@@ -12,6 +12,12 @@ pydantic = "*"
 rich = "*"
 python-dotenv = "*"
 langgraph = "*"
+sqlalchemy = "*"
+httpx = "*"
+fastapi = "*"
+uvicorn = "*"
+loguru = "*"
+pydantic-settings = "*"
 
 [tasks]
 start = { cmd = "python -m agent.cli" }

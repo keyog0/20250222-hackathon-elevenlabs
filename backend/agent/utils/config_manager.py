@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class Config(BaseModel):
     """Configuration model for the agent."""
     openai_api_key: str
-    model_name: str = "gpt-4-turbo-preview"
+    model_name: str = "gpt-4o-mini"
     data_dir: str = "data"
     
     # Optional configurations

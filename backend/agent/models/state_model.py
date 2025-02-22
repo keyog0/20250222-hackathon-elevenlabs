@@ -23,7 +23,7 @@ class StateUpdate(BaseModel):
     """Structure for state updates from LLM."""
     emotion_adjustments: Dict[str, float] = Field(
         default_factory=dict,
-        description="Emotion adjustments with values between 0 and 1"
+        description="Emotion adjustments with values between -1 and 1"
     )
     affinity_change: float = Field(
         default=0.0,
@@ -40,10 +40,10 @@ class StateUpdate(BaseModel):
 
     @validator("emotion_adjustments")
     def validate_emotions(cls, v):
-        """Validate emotion values are between 0 and 1."""
+        """Validate emotion values are between -1 and 1."""
         for emotion, value in v.items():
-            if not 0 <= value <= 1:
-                raise ValueError(f"Emotion value must be between 0 and 1: {emotion}={value}")
+            if not -1 <= value <= 1:
+                raise ValueError(f"Emotion value must be between -1 and 1: {emotion}={value}")
         return v
 
     @validator("emotion_adjustments")
@@ -100,7 +100,7 @@ class StateModel(BaseModel):
 
     def update_emotion(self, emotion: EmotionCategory, intensity: float) -> None:
         """Update the intensity of a specific emotion."""
-        self.current_emotions[emotion] = max(0.0, min(1.0, intensity))
+        self.current_emotions[emotion] = max(-1.0, min(1.0, intensity))
 
     def add_user_impression(self, category: str, impression: Any) -> None:
         """Add or update an impression about the user."""
