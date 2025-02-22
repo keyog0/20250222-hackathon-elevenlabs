@@ -9,12 +9,13 @@ from cashews.contrib.fastapi import (
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from router.api import api_router
-from config import settings
-from middlewares.logging import LoggingMiddleware
-from core.errors.exceptions import CustomException
-from core.errors.handlers import custom_exception_handler, general_error_handler, http_exception_handler
-from script.setup_database import setup_database
+from src.router.api import api_router
+from src.router.chat.room import websocket_router
+from src.config import settings
+from src.middlewares.logging import LoggingMiddleware
+from src.core.errors.exceptions import CustomException
+from src.core.errors.handlers import custom_exception_handler, general_error_handler, http_exception_handler
+from src.script.setup_database import setup_database
 
 
 class EndpointFilter(logging.Filter):
@@ -47,6 +48,7 @@ def create_app():
     cache.setup(settings.CACHE_URI)
 
     app.include_router(api_router)
+    app.include_router(websocket_router)
 
     app.add_exception_handler(Exception, general_error_handler)
     app.add_exception_handler(HTTPException, http_exception_handler)

@@ -4,8 +4,8 @@ from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from core.retry_query import AsyncRetryingQuery, RetryingQuery
-from config import settings
+from src.core.retry_query import AsyncRetryingQuery, RetryingQuery
+from src.config import settings
 
 Base = declarative_base()
 

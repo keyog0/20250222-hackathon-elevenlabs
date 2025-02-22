@@ -3,7 +3,7 @@ import logging
 import time
 import urllib.parse
 
-from fastapi import Request
+from fastapi import Request, WebSocket
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # ANSI 이스케이프 코드
@@ -25,7 +25,21 @@ logger = logging.getLogger(__name__)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request | WebSocket, call_next):
+        # WebSocket 연결 확인
+        if "websocket" in request.scope.get("type", ""):
+            log_time = f"[{COLORS['Grey']}{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}{RESET}] "
+            method = f"{COLORS['Blue']}WS{RESET} "
+            endpoint = f"{COLORS['White']}{urllib.parse.unquote(request.url.path)}{RESET} "
+            client = f"{COLORS['Magenta']}client: {request.client.host}{RESET} "
+            request_id = f"{COLORS['White']}requestId: {request.headers.get('X-Amzn-Trace-Id') or request.headers.get('X-Request-Id')}"
+
+            ws_message = f"{log_time}{COLORS['Yellow']}[WS] <-> {RESET}{method}{endpoint}{client}{request_id}"
+            logger.info(ws_message)
+
+            response = await call_next(request)
+            return response
+
         if request.url.path in ["/healthcheck", "/docs", "/openapi.json"]:
             return await call_next(request)
         if request.url.path.startswith("/videos") and request.url.path.endswith(".mp4"):

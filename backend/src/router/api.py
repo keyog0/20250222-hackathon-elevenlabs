@@ -1,8 +1,9 @@
 from copy import deepcopy
 from fastapi import APIRouter, Request, Depends
 
-from router.user.auth import auth_router
-from config import settings
+from src.config import settings
+
+# from src.router.chat.room import room_router
 
 
 def truncate_json(json, max_len: int = 100):
@@ -36,7 +37,7 @@ async def store_request_body(request: Request):
 
 
 api_router = APIRouter(dependencies=[Depends(store_request_body)])
-api_router.include_router(auth_router)
+# api_router.include_router(room_router)
 
 
 @api_router.get("/healthcheck", include_in_schema=settings.DEBUG_MODE)

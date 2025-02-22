@@ -2,8 +2,8 @@ from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi import status
 
-from config import settings
-from core.errors.exceptions import CustomException
+from src.config import settings
+from src.core.errors.exceptions import CustomException
 
 
 # 전역으로 익셉션 캐치하는 부분

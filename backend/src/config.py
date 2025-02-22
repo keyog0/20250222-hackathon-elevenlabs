@@ -27,18 +27,7 @@ class Settings(BaseSettings):
     # CACHE_URI: str = "redis://localhost:6379"
 
     # JWT
-    API_KEY_SECRET: str = "your_api_key_secret"
-    ACCESS_TOKEN_SECRET: str = "your_access_token_secret"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_SECRET: str = "your_refresh_token_secret"
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    ALGORITHM: str = "HS256"
-
-    # PASS
-    PASS_CLIENT_ID: str = "your_pass_client_id"
-    PASS_CLIENT_SECRET: str = "your_pass_client_secret"
-    PASS_REDIRECT_URI: str = "your_pass_redirect_uri"
-    PASS_TOKEN_VERSION_ID: str = "your_pass_token_version_id"
+    ELEVENLABS_API_KEY: str = "your_elevenlabs_api_key"
 
     class Config:
         env_file = ".env"
