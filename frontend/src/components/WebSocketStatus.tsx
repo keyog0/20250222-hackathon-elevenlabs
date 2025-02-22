@@ -12,7 +12,7 @@ export const WebSocketStatus = ({
   wsError,
 }: WebSocketMessageProps) => {
   return (
-    <div className="p-4 bg-black/10 fixed top-4 left-4 rounded-lg min-w-[200px]">
+    <div className="p-4 bg-gray-400 fixed top-4 left-4 rounded-lg min-w-[200px]">
       <div className="text-sm">
         <div
           className={`size-2 rounded-full ${
@@ -28,7 +28,7 @@ export const WebSocketStatus = ({
             <div key={index} className="p-2 bg-gray-100 rounded mb-2">
               <p className="text-black">{msg.content}</p>
               <small className="text-gray-500">
-                {new Date(msg.created_at).toLocaleString()}
+                {msg.created_at?.toLocaleString()}
               </small>
             </div>
           ))}

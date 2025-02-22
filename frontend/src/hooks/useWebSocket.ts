@@ -7,12 +7,11 @@ export type MessageType = "system" | "speaking" | "text" | "file";
 export interface WebSocketMessage {
   type: MessageType;
   content: string;
-  created_at: number;
+  created_at?: string;
   is_speaking: boolean;
   file_url?: string;
-  user_id?: string;
-  room_id?: string;
   message_id?: string;
+  sender: "agent" | "user" | "system";
 }
 
 // WebSocket 훅의 반환 타입
@@ -45,6 +44,7 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
     ws.current.onmessage = (event) => {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
+        if (message.sender === "user") return;
         setMessages((prev) => [...prev, message]);
         console.log("메시지 수신:", message);
       } catch (err) {
@@ -79,9 +79,9 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       const message: WebSocketMessage = {
         is_speaking: type === "speaking",
-        type,
+        type: type === "speaking" ? "text" : type,
         content,
-        created_at: Date.now(),
+        sender: "user",
       };
       ws.current.send(JSON.stringify(message));
       console.log("메시지 전송:", message);

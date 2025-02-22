@@ -89,6 +89,7 @@ export const useConnectWebSocket = ({
 
     recognition.onend = () => {
       setIsListening(false);
+      sendMessage("text", "");
     };
 
     recognitionRef.current = recognition;
