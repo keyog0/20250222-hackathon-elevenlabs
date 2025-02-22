@@ -28,8 +28,9 @@ def create_agent_workflow(
     async def process_sequential(state: AgentState) -> AgentState:
         """Process user input sequentially to ensure full context awareness."""
         try:
-            # First analyze feedback
+            # First analyze feedback and scenario
             state = await feedback_node(state)
+            state = await scenario_node(state)
             
             # Then update state and memory
             state = await state_node(state)
@@ -44,10 +45,6 @@ def create_agent_workflow(
     
     # Add nodes to graph
     workflow.add_node("process_sequential", process_sequential)
-    workflow.add_node("manage_scenario", scenario_node)
-    
-    # Define edges
-    workflow.add_edge("process_sequential", "manage_scenario")
     
     # Define conditional edges
     def should_continue(state: AgentState) -> Union[str, END]:
@@ -69,9 +66,9 @@ def create_agent_workflow(
         # Continue with next user input
         return END
     
-    # Add conditional edge from manage_scenario to end
+    # Add conditional edge from process_sequential to end
     workflow.add_conditional_edges(
-        "manage_scenario",
+        "process_sequential",
         should_continue,
         {
             END: END

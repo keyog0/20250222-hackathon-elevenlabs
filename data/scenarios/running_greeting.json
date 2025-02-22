@@ -2,7 +2,7 @@
     "scenario_id": "running_greeting",
     "type": "conversation",
     "title": "러닝크루 첫 만남: 달리기 중 대화",
-    "description": "선택한 팩에서 달리기를 하면서 자연스럽게 대화를 나누는 시간. 페이서와 함께 달리면서 서로를 알아가는 기회.",
+    "description": "선택한 팩에서 달리기를 하면서 자연스럽게 대화를 나누는 시간. 여성은 동호회에 처음 참여하는 것이라 대화를 쉽게 이어가지 못하고 있다. 여성은 러닝 초보이다.",
     "location": "한강공원 러닝 코스",
     "time": "저녁 7시 30분",
     "participants": [

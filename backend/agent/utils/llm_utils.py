@@ -21,7 +21,7 @@ class LLMUtils:
         # Default model for general tasks
         self.default_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         # Advanced model for emotion analysis
-        self.emotion_model = "gpt-4o"
+        self.emotion_model = "gpt-4o-mini"
 
     def _clean_json_response(self, content: str) -> str:
         """Clean JSON response from markdown formatting and other artifacts."""

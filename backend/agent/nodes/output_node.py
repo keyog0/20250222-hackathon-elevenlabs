@@ -95,7 +95,7 @@ def create_output_node(llm: LLMUtils):
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 temperature=0.7,
-                max_tokens=150
+                max_tokens=1000
             )
             
             # Log LLM response
@@ -169,7 +169,8 @@ def create_output_node(llm: LLMUtils):
 2. 현재 감정 상태를 자연스럽게 반영하기
 3. 대화 맥락과 기억을 고려하기
 4. 자연스럽고 친근한 대화 이어가기
-5. 적절한 존댓말과 한국어 표현 사용하기"""
+5. 적절한 존댓말과 한국어 표현 사용하기
+6. 시나리오와 관련된 이야기 위주로 하기"""
 
     def _build_prompt_context(
         user_input: str,

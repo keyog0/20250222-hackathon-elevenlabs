@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     
     # OpenAI
     OPENAI_API_KEY: str = "your_openai_api_key"
-    OPENAI_MODEL: str = "gpt-4-turbo-preview"
+    OPENAI_MODEL: str = "gpt-4o-mini"
 
     class Config:
         env_file = ".env"

@@ -52,7 +52,7 @@ def create_feedback_node(llm: LLMUtils):
                 system_prompt=system_prompt,
                 user_prompt=user_input,
                 temperature=0.3,
-                max_tokens=150
+                max_tokens=1000
             )
             
             try:

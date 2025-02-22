@@ -31,7 +31,7 @@ class ConfigManager:
             # Fall back to environment variables
             config_data = {
                 "openai_api_key": os.getenv("OPENAI_API_KEY"),
-                "model_name": os.getenv("MODEL_NAME", "gpt-4-turbo-preview"),
+                "model_name": os.getenv("MODEL_NAME", "gpt-4o-mini"),
                 "data_dir": os.getenv("DATA_DIR", "data")
             }
             
