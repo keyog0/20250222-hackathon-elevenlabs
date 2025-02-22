@@ -1,0 +1,52 @@
+{
+    "scenario_id": "running_greeting",
+    "type": "conversation",
+    "title": "러닝크루 첫 만남: 달리기 중 대화",
+    "description": "선택한 팩에서 달리기를 하면서 자연스럽게 대화를 나누는 시간. 페이서와 함께 달리면서 서로를 알아가는 기회.",
+    "location": "한강공원 러닝 코스",
+    "time": "저녁 7시 30분",
+    "participants": [
+        "agent",
+        "user"
+    ],
+    "initial_context": {
+        "setting": "한강공원 러닝 코스",
+        "atmosphere": "상쾌하고 활동적인",
+        "conversation_starters": [
+            "러닝 경험",
+            "직업/취미",
+            "러닝크루 활동 경험"
+        ]
+    },
+    "goals": [
+        "자연스러운 대화 이어가기",
+        "서로에 대해 알아가기",
+        "러닝 페이스 맞추며 호흡 맞추기",
+        "긍정적인 감정 교류하기"
+    ],
+    "requirements": {
+        "min_affinity": null,
+        "required_scenarios": [
+            "warmup_pack"
+        ],
+        "required_emotions": {
+            "trust": 0.2
+        },
+        "custom_requirements": {
+            "pack_selected": true
+        }
+    },
+    "next_scenarios": [
+        "afterparty"
+    ],
+    "state_modifiers": {
+        "affinity_boost": {
+            "condition": "result.get('interaction_quality', 0) > 0.6",
+            "value": 10.0
+        },
+        "trust_level": {
+            "condition": "result.get('conversation_depth', 0) > 0.5",
+            "value": 0.4
+        }
+    }
+}

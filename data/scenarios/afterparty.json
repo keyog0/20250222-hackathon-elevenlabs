@@ -1,0 +1,57 @@
+{
+    "scenario_id": "afterparty",
+    "type": "conversation",
+    "title": "러닝크루 첫 만남: 뒷풀이",
+    "description": "러닝을 마치고 근처 식당에서 진행되는 뒷풀이. 모든 페이서들이 자기소개를 하고, 더 깊은 대화를 나누는 시간.",
+    "location": "한강공원 근처 식당",
+    "time": "저녁 9시",
+    "participants": [
+        "agent",
+        "user",
+        "other_pacers"
+    ],
+    "initial_context": {
+        "setting": "편안한 분위기의 식당",
+        "atmosphere": "친근하고 활기찬",
+        "conversation_starters": [
+            "오늘 러닝 경험",
+            "각자의 직업과 취미",
+            "러닝크루 참여 계기"
+        ]
+    },
+    "goals": [
+        "더 깊은 대화 나누기",
+        "서로에 대해 자세히 알아가기",
+        "연락처 교환 기회 만들기",
+        "다음 만남의 가능성 열어두기",
+        "긍정적인 첫 인상 마무리하기"
+    ],
+    "requirements": {
+        "min_affinity": 15.0,
+        "required_scenarios": [
+            "running_greeting"
+        ],
+        "required_emotions": {
+            "trust": 0.4,
+            "joy": 0.3
+        },
+        "custom_requirements": {
+            "completed_run": true
+        }
+    },
+    "next_scenarios": [],
+    "state_modifiers": {
+        "affinity_boost": {
+            "condition": "result.get('interaction_quality', 0) > 0.7",
+            "value": 15.0
+        },
+        "trust_level": {
+            "condition": "result.get('personal_connection', 0) > 0.6",
+            "value": 0.5
+        },
+        "contact_exchange": {
+            "condition": "result.get('affinity_score', 0) > 30",
+            "value": true
+        }
+    }
+}

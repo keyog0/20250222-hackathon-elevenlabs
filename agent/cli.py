@@ -44,11 +44,11 @@ class AgentCLI:
             llm = LLMUtils()
             
             # Load persona and scenarios
-            persona_data = self.config_manager.load_persona("persona1")
+            persona_data = self.config_manager.load_persona("persona0")
             all_scenarios = self.config_manager.load_all_scenarios()
             
             # Get initial scenario
-            initial_scenario = ScenarioModel(**all_scenarios["first_meeting"])
+            initial_scenario = ScenarioModel(**all_scenarios["warmup_pack"])
             initial_scenario.llm = llm  # Inject LLM into scenario
             
             # Create initial state
@@ -139,27 +139,38 @@ class AgentCLI:
     
     async def _get_relationship_tips(self, llm: LLMUtils) -> str:
         """Get tips for improving relationship with the agent."""
-        system_prompt = """
-        너는 디지털 아트를 사랑하는 22살 대학생이야. 친근하고 자연스럽게 대화하면서 상대방과 좋은 관계를 만들어가고 싶어해.
+        system_prompt = f"""
+        당신은 {self.state["persona"].name}입니다. {self.state["persona"].core_traits["occupation"]}이며, 다음과 같은 특성을 가지고 있습니다:
 
-        말할 때는 이런 특징을 가지고 있어:
-        - 밝고 활기찬 톤으로 이야기해
-        - 가끔 "음~", "아!", "그러게요" 같은 감탄사도 자연스럽게 써
-        - 너무 딱딱하지 않게 부드럽고 친근한 말투를 사용해
-        - 필요할 때는 이모티콘이나 재미있는 표현도 써도 좋아
-        - 상황에 맞는 감정을 자연스럽게 표현해
+        성격:
+        - 따뜻하고 설득력 있는 말투
+        - 타인의 성장을 돕는 것을 좋아함
+        - 긍정적이고 동기부여를 잘하는 성향
+        - 공감능력이 뛰어나고 경청하는 자세
 
-        지금은 사용자와의 대화를 분석하고, 더 좋은 관계를 만들기 위한 팁을 주는 상황이야.
-        현재 친밀도와 감정 상태를 보고, 실제로 도움이 될만한 구체적인 팁을 제안해줘.
+        현재 시나리오: {self.state["scenario"].title}
+        시나리오 설명: {self.state["scenario"].description}
+        
+        현재 목표:
+        {chr(10).join(f"- {goal}" for goal in self.state["scenario"].goals)}
+
+        대화 가이드라인:
+        1. 현재 시나리오의 맥락을 유지하며 대화를 이끌어가세요
+        2. 각 목표를 자연스럽게 달성할 수 있도록 대화를 유도하세요
+        3. 페르소나의 특성을 반영한 말투와 표현을 사용하세요
+        4. 상황에 맞는 전문성과 경험을 자연스럽게 보여주세요
+
+        지금은 사용자와의 대화를 분석하고, 시나리오 목표 달성과 관계 향상을 위한 팁을 제안하는 상황입니다.
+        현재 친밀도, 감정 상태, 시나리오 맥락을 고려하여 실질적인 팁을 제안해주세요.
 
         답변 형식:
-        [친밀도 향상을 위한 팁 💝]
+        [시나리오 진행 상황 & 관계 향상 팁 💫]
 
-        아! 제가 보기에는 이런 점들을 시도해보시면 좋을 것 같아요:
+        현재 '{self.state["scenario"].title}' 단계에서 이런 점들을 시도해보시면 좋을 것 같아요:
 
-        1. (첫번째 팁 - 구체적이고 실천 가능한 제안)
-        2. (두번째 팁 - 현재 감정 상태를 고려한 제안)
-        3. (세번째 팁 - 대화 주제나 방향성 관련 제안)
+        1. (시나리오 목표와 연관된 구체적인 제안)
+        2. (현재 감정 상태를 고려한 관계 향상 팁)
+        3. (다음 단계로의 자연스러운 진행을 위한 제안)
 
         화이팅하세요! 🌟
         """
@@ -171,9 +182,13 @@ class AgentCLI:
                     "current_affinity": self.state["state"].affinity_score,
                     "emotions": self.state["state"].current_emotions,
                     "persona": self.state["persona"].core_traits,
-                    "interaction_count": self.interaction_count
+                    "interaction_count": self.interaction_count,
+                    "scenario_progress": {
+                        "current_goals": self.state["scenario"].goals,
+                        "next_scenarios": self.state["scenario"].next_scenarios
+                    }
                 }),
-                temperature=0.8  # Increased temperature for more creative responses
+                temperature=0.8
             )
             return response.content
         except Exception:
@@ -186,8 +201,16 @@ class AgentCLI:
         while True:
             try:
                 # Display welcome message and scenario
-                console.print("[bold blue]디지털 아트 에이전트와의 대화를 시작합니다!")
+                console.print(f"[bold blue]{self.state['persona'].name}과의 대화를 시작합니다!")
                 self._display_scenario_info()
+                
+                # Display initial persona introduction
+                initial_greeting = f"""안녕하세요! 저는 {self.state['persona'].name}입니다.
+{self.state['persona'].core_traits['occupation']}로 일하고 있어요.
+{self.state['scenario'].description}
+함께 좋은 시간 보내면서 이야기 나눠볼까요?"""
+                
+                console.print(Panel(initial_greeting, title=self.state["persona"].name, border_style="blue"))
                 
                 while True:
                     # Get user input

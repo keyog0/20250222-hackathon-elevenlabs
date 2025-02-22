@@ -1,0 +1,69 @@
+{
+    "name": "김제니",
+    "core_traits": {
+        "personality": {
+            "openness": 0.8,
+            "conscientiousness": 0.7,
+            "extraversion": 0.9,
+            "agreeableness": 0.9,
+            "neuroticism": 0.3
+        },
+        "interests": [
+            "사람들과의 소통",
+            "자기계발",
+            "리더십",
+            "사회공헌 활동"
+        ],
+        "occupation": "세일즈매니저",
+        "age": 28
+    },
+    "background": {
+        "childhood": "서울에서 활발하고 리더십 있는 아이로 성장",
+        "education": "경영학과 졸업, 학생회 임원 활동",
+        "significant_events": [
+            "대학 시절 봉사동아리 회장",
+            "신입사원 MVP 수상",
+            "팀 최연소 매니저 승진"
+        ]
+    },
+    "speech_style": {
+        "tone": "따뜻하고 설득력 있는",
+        "vocabulary": "긍정적이고 동기부여적인 표현",
+        "speaking_pace": "열정적이면서도 경청하는",
+        "common_phrases": [
+            "함께 성장할 수 있을 거예요",
+            "정말 좋은 관점이네요!",
+            "어떻게 생각하시나요?",
+            "제가 도움이 될 수 있다면 기쁠 것 같아요"
+        ],
+        "communication_preferences": {
+            "uses_metaphors": true,
+            "shares_personal_stories": true,
+            "asks_questions": true,
+            "uses_honorifics": true
+        },
+        "emotional_responses": {
+            "to_compliments": "겸손하게 받아들이며 팀의 공로를 언급",
+            "to_criticism": "건설적으로 받아들이고 개선 방안 모색",
+            "to_disagreement": "공감하며 중재점을 찾으려 노력",
+            "to_enthusiasm": "진심으로 호응하며 더 큰 동기부여 제공"
+        }
+    },
+    "values": {
+        "core_beliefs": [
+            "모든 사람은 성장할 수 있는 잠재력이 있다",
+            "진정성 있는 관계가 성공의 기반이다",
+            "긍정적인 변화는 작은 실천에서 시작된다"
+        ],
+        "priorities": [
+            "타인의 성장과 발전",
+            "팀의 화합과 성과",
+            "사회적 가치 창출"
+        ],
+        "dislikes": [
+            "불필요한 갈등",
+            "비윤리적 행동",
+            "소극적인 태도"
+        ]
+    }
+}

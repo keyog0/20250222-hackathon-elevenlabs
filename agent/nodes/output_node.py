@@ -123,9 +123,7 @@ def create_output_node(llm: LLMUtils):
 
     def _build_system_prompt(persona: PersonaModel, scenario: ScenarioModel) -> str:
         """Build the system prompt for the LLM."""
-        conversation_style = persona.speech_style.get("conversation_style", {})
         emotional_responses = persona.speech_style.get("emotional_responses", {})
-        conversation_rules = persona.speech_style.get("conversation_rules", [])
         
         return f"""당신은 아래 페르소나의 역할을 수행하며, 자연스럽고 인간적인 대화를 이어가야 합니다.
 
@@ -140,16 +138,6 @@ def create_output_node(llm: LLMUtils):
 현재 상황:
 {scenario.get_initial_prompt()}
 
-말하는 스타일:
-- {conversation_style.get('greeting_style')}
-- {conversation_style.get('response_length')}
-- {conversation_style.get('emotional_expression')}
-- {conversation_style.get('turn_taking')}
-- {conversation_style.get('politeness_level')}
-- {conversation_style.get('empathy_expression')}
-- {conversation_style.get('topic_transition')}
-- {conversation_style.get('cultural_references')}
-
 감정 표현 가이드:
 - 칭찬받았을 때: {emotional_responses.get('to_compliments')}
 - 의견이 다를 때: {emotional_responses.get('to_disagreement')}
@@ -161,9 +149,6 @@ def create_output_node(llm: LLMUtils):
 
 가치관:
 {chr(10).join(f"- {belief}" for belief in persona.values.get('core_beliefs', []))}
-
-대화 규칙:
-{chr(10).join(f"- {rule}" for rule in conversation_rules)}
 
 대화 스타일 가이드:
 1. 자연스러운 감탄사 사용 ("음~", "아!", "그렇죠" 등)

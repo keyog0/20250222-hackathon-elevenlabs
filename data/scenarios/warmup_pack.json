@@ -1,0 +1,47 @@
+{
+    "scenario_id": "warmup_pack",
+    "type": "conversation",
+    "title": "러닝크루 첫 만남: 준비운동과 팩 선택",
+    "description": "한강공원 러닝크루 집합 장소. 처음 참여하는 러닝크루에서 준비운동을 하고 자신의 레벨에 맞는 팩을 선택하는 시간. 여러 팩이 있고, 각 팩마다 한 명의 여성 페이서가 배정되어 있다.",
+    "location": "한강공원 러닝크루 집합장소",
+    "time": "저녁 7시",
+    "participants": [
+        "agent",
+        "user"
+    ],
+    "initial_context": {
+        "setting": "한강공원 러닝크루 모임 장소",
+        "atmosphere": "활기차고 기대감 넘치는",
+        "conversation_starters": [
+            "러닝크루 참여 계기",
+            "평소 운동 습관",
+            "선호하는 러닝 페이스"
+        ]
+    },
+    "goals": [
+        "사용자의 러닝 레벨 파악하기",
+        "적절한 팩 추천하기",
+        "첫 인상 형성하기",
+        "준비운동 도와주기",
+        "러닝에 대한 기본적인 대화 나누기"
+    ],
+    "requirements": {
+        "min_affinity": null,
+        "required_scenarios": [],
+        "required_emotions": {},
+        "custom_requirements": {}
+    },
+    "next_scenarios": [
+        "running_greeting"
+    ],
+    "state_modifiers": {
+        "affinity_boost": {
+            "condition": "result.get('interaction_quality', 0) > 0.5",
+            "value": 5.0
+        },
+        "trust_level": {
+            "condition": "result.get('helpful_guidance', 0) > 0.7",
+            "value": 0.3
+        }
+    }
+}
